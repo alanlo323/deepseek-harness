@@ -73,7 +73,7 @@ const BOOT_GRAMMAR_FILES: readonly string[] = [
   'dist/json.mjs',
 ]
 
-/** Font asset extensions routed to assets/fonts/ (KaTeX's woff2/woff/ttf faces). */
+/** Font asset extensions routed to assets/fonts/ (KaTeX and Noto Sans TC faces). */
 const FONT_EXTENSIONS: readonly string[] = ['.woff2', '.woff', '.ttf']
 
 /**
@@ -97,7 +97,7 @@ export default defineConfig({
       output: {
         // Output layout: the two main chunks stay at assets/ root; lazy
         // @shikijs/langs grammar chunks group under assets/langs/; fonts
-        // (all KaTeX faces referenced by vendor.css) group under
+        // (KaTeX and Noto Sans TC faces) group under
         // assets/fonts/. Sourcemaps need no arrangement: rollup writes each
         // .map next to its js and references it by bare relative filename.
         chunkFileNames(chunk): string {
@@ -136,6 +136,13 @@ export default defineConfig({
     // bundles through the client module system. Order matters — subpath
     // aliases must win over bare-name prefixes.
     alias: [
+      // Theme token sheets: package.json exports `./styles/*` at lib/ for Node
+      // consumers, but the Vite app must compile src so @font-face url() rides
+      // the CSS pipeline (Noto Sans TC woff2, same as other source sheets).
+      {
+        find: /^@deepseek-ai\/dsh-client-ui-theme\/styles\/(.*)$/,
+        replacement: `${src('../../packages/client/ui-theme/src/styles')}/$1`,
+      },
       // Browserization of the vendored cordis Loader: its only node-only
       // import; the two process probes are mapped by `define` below.
       { find: /^node:module$/, replacement: src('./src/node-module-stub.ts') },

@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-18-web-cjk-noto-sans-tc-webfont.md
+2026-08-18-web-cjk-noto-sans-tc-webfont.md: 672723efddca3fabb5fb04f2f18609ed0dbb0774
+2026-08-18-web-cjk-noto-sans-tc-webfont.zh.md: 170829ad5a539740da980786f038a14c9be2556f

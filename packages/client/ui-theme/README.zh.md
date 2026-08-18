@@ -24,3 +24,4 @@
 
 - **第三方主题是表层，不是产品**：注册主题意味着覆盖同名别名变量；目前不会验证一组覆盖是否完整。
 - **token 样式表是颜色值的唯一权威来源**：会有意不补入 cssdesign 中缺失的值（例如设计中的 #4176E6 标签页蓝色）；一律采用最接近的语义 token。设计负责人批准的新增值是例外：须在同一变更中以一个静态尺度层级与一个语义别名的形式进入（`--dsw-static-blue-900` / `--dsw-alias-label-primary-bluish`）。
+- **CJK 优先 PingFang TC，其次 Noto Sans TC**：`DshCjk` 在已安装时用 `local()` 加载 PingFang TC，否则使用 `@fontsource/noto-sans-tc` 的 OFL Noto Sans TC 繁体 webfont，再其次是 Microsoft JhengHei。不打包 PingFang 二进制。见 [Noto Sans TC webfont](../../../.agents/notes/implemented/feature/2026-08-18-web-cjk-noto-sans-tc-webfont.md)。

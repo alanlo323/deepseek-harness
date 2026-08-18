@@ -706,6 +706,7 @@
     },
     "apps/web": {
       "entry": [
+        "tests/**/*.spec.ts",
         "tests/**/*.e2e.ts",
         "tests/**/*.perf.ts",
         "tests/**/*.snapshot.ts",
