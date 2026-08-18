@@ -356,14 +356,20 @@ function lockOwnershipChangedError(lockPath) {
   return new Error(`Lefthook installer lock ownership changed for ${lockPath}; refusing to remove it`)
 }
 
+// Keep aligned with scripts/install-lefthook-lock-identity.ts.
+function sameInstallLockIdentity(left, right) {
+  if (left.ino !== right.ino) return false
+  if (left.dev === right.dev) return true
+  return left.dev === 0 || right.dev === 0
+}
+
 function releaseInstallLock(lockPath, ownedRecord, ownedStat) {
   const currentStat = installLockStat(lockPath)
   if (
     currentStat === undefined
     || !currentStat.isFile()
     || currentStat.isSymbolicLink()
-    || currentStat.dev !== ownedStat.dev
-    || currentStat.ino !== ownedStat.ino
+    || !sameInstallLockIdentity(ownedStat, currentStat)
     || readInstallLock(lockPath) !== ownedRecord
   ) {
     throw lockOwnershipChangedError(lockPath)
@@ -402,8 +408,7 @@ async function acquireInstallLock(commonDirectory) {
         publishedStat === undefined
         || !publishedStat.isFile()
         || publishedStat.isSymbolicLink()
-        || publishedStat.dev !== ownedStat.dev
-        || publishedStat.ino !== ownedStat.ino
+        || !sameInstallLockIdentity(ownedStat, publishedStat)
       ) {
         throw lockOwnershipChangedError(lockPath)
       }

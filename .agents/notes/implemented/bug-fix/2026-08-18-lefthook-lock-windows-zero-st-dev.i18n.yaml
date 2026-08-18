@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-18-lefthook-lock-windows-zero-st-dev.md
+2026-08-18-lefthook-lock-windows-zero-st-dev.md: 03c6aa94189e8b537e48796b3f7821ee769f4619
+2026-08-18-lefthook-lock-windows-zero-st-dev.zh.md: 4d0f929266d9223cc9b7e8bbafa6193aa362a78d

@@ -1,11 +1,14 @@
 import { spawn, spawnSync } from 'node:child_process'
 import {
   chmodSync,
+  closeSync,
   existsSync,
+  fstatSync,
   linkSync,
   mkdirSync,
   mkdtempSync,
   lstatSync,
+  openSync,
   readFileSync,
   renameSync,
   rmSync,
@@ -16,6 +19,7 @@ import { tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
+import { sameInstallLockIdentity } from './install-lefthook-lock-identity.ts'
 import { removeFixtureSafely, unlinkFixtureLinks } from './test-fixture-cleanup.ts'
 
 const installer = fileURLToPath(new URL('./install-lefthook.mjs', import.meta.url))
@@ -484,6 +488,31 @@ describe('worktree-local Lefthook installer', { timeout: 30_000 }, () => {
     expect(lstatSync(commonConfig).isSymbolicLink()).toBe(true)
     expect(readFileSync(externalConfig, 'utf8')).toBe(externalContent)
     expect(existsSync(hooksPath(fixture, fixture.main))).toBe(false)
+  })
+
+  it('treats a zero volume serial as the same lock inode', () => {
+    expect(sameInstallLockIdentity({ dev: 3_099_789_976, ino: 123 }, { dev: 0, ino: 123 })).toBe(true)
+    expect(sameInstallLockIdentity({ dev: 0, ino: 123 }, { dev: 3_099_789_976, ino: 123 })).toBe(true)
+    expect(sameInstallLockIdentity({ dev: 0, ino: 123 }, { dev: 0, ino: 123 })).toBe(true)
+    expect(sameInstallLockIdentity({ dev: 1, ino: 123 }, { dev: 1, ino: 123 })).toBe(true)
+    expect(sameInstallLockIdentity({ dev: 1, ino: 123 }, { dev: 2, ino: 123 })).toBe(false)
+    expect(sameInstallLockIdentity({ dev: 1, ino: 123 }, { dev: 0, ino: 124 })).toBe(false)
+  })
+
+  it('treats create-handle fstat and path lstat as the same lock inode', () => {
+    const container = mkdtempSync(join(tmpdir(), 'dsh-lefthook-lock-id-'))
+    fixtures.push(container)
+    const lockPath = join(container, 'dsh-lefthook-install.lock')
+    const lockHandle = openSync(lockPath, 'wx', 0o600)
+    let ownedStat
+    try {
+      ownedStat = fstatSync(lockHandle)
+      writeFileSync(lockHandle, '1 00000000-0000-4000-8000-000000000000\n')
+    } finally {
+      closeSync(lockHandle)
+    }
+    const publishedStat = lstatSync(lockPath)
+    expect(sameInstallLockIdentity(ownedStat, publishedStat)).toBe(true)
   })
 
   it('leaves stale installer locks for explicit recovery', async () => {
