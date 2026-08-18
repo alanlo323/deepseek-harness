@@ -230,7 +230,7 @@ function forwardedSettings(ns: string): HostFrame {
     type: 'host/remote-event',
     event: 'settings/document-updated',
     // The revision is the Host's own counter, so the matcher is the assertion.
-    args: [ns, expect.any(Number)], // oxlint-disable-line typescript/no-unsafe-assignment
+    args: [ns, expect.any(Number)],
   }
 }
 
@@ -338,7 +338,7 @@ describe('settings domain', () => {
       preference: z.union(['light', 'dark', 'system']).default('system'),
     }))
     ctx.settings.register(settingsNamespace('locale'), z.object({
-      preference: z.union(['zh', 'en']).required(false),
+      preference: z.union(['zh', 'en', 'zh-Hant']).required(false),
     }))
     ctx.settings.register(settingsNamespace('ui-conversation'), z.object({
       busyEnter: z.union(['queue', 'steer']).default('queue'),

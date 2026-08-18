@@ -238,4 +238,17 @@ describe('ReadBlock copy', () => {
     const view = render(<ReadBlock label="empty.ts" lines={[]} totalLines={0} />)
     expect(view.queryByRole('button', { name: '复制' })).toBeNull()
   })
+
+  it('renders injected copy when labels are supplied', () => {
+    const view = render(
+      <ReadBlock
+        label="a.ts"
+        lines={lines(3)}
+        totalLines={180}
+        labels={{ showing: (shown, total) => `Showing ${shown} / ${total}` }}
+      />,
+    )
+    expect(view.getByText('Showing 3 / 180')).toBeTruthy()
+    expect(view.queryByText(/显示/u)).toBeNull()
+  })
 })

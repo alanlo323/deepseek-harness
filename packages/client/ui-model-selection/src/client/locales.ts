@@ -29,6 +29,27 @@ export const zh = {
   'empty.efforts': '当前模型未提供推理等级。',
 } satisfies Record<string, string>
 
+/** Traditional Chinese dictionary, checked complete against the zh key set. */
+export const zhHant = {
+  'command.description': '選擇本會話使用的模型',
+  'option.loadError': '目錄載入失敗：{message}',
+  'trigger.fallback': '選擇模型',
+  'trigger.selectAria': '選擇模型',
+  'trigger.aria': '選擇模型，當前 {model}',
+  'trigger.ariaEffort': '選擇模型，當前 {model}，推理等級 {effort}',
+  'menu.aria': '模型與推理等級',
+  'menu.model': '模型',
+  'menu.effort': '推理等級',
+  'effort.providerDefault': 'Default',
+  'status.loading': '正在刷新模型列表…',
+  'error.action': '模型操作失敗：{message}',
+  'action.reload': '重新載入',
+  'warning.groupLoad': '{name} 載入失敗：{message}',
+  'empty.models': '沒有可用的模型。',
+  'blocked.composer': '當前模型不可用，請先選擇模型',
+  'empty.efforts': '當前模型未提供推理等級。',
+} satisfies typeof zh
+
 /** The model namespace key union. */
 export type ModelKey = keyof typeof zh
 

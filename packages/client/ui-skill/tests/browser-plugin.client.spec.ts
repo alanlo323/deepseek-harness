@@ -138,6 +138,13 @@ describe('apply', () => {
           'row.instructions': 'Instructions',
           'menu.userOnly': 'user-only',
         },
+        'zh-Hant': {
+          'row.running': '正在載入 skill',
+          'row.failed': 'skill 載入失敗',
+          'row.stopped': 'skill 載入已中止',
+          'row.instructions': '說明',
+          'menu.userOnly': '僅使用者',
+        },
       },
     }])
   })

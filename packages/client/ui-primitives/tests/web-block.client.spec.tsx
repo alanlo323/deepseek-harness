@@ -176,3 +176,26 @@ describe('WebBlock fetch card', () => {
     expect(view.getByText('HTTP 404')).toBeTruthy()
   })
 })
+
+describe('WebBlock labels', () => {
+  it('renders injected search and fetch copy', () => {
+    const empty = render(
+      <WebBlock kind="search" sources={[]} truncated labels={{ noResults: 'None', sourcesTruncated: 'Sources cut' }} />,
+    )
+    expect(empty.getByText('None')).toBeTruthy()
+    expect(empty.getByText('Sources cut')).toBeTruthy()
+    expect(empty.queryByText('未找到结果')).toBeNull()
+    cleanup()
+    const fetch = render(
+      <WebBlock
+        kind="fetch"
+        url="https://example.com"
+        statusCode={200}
+        truncated
+        labels={{ contentTruncated: 'Body cut' }}
+      />,
+    )
+    expect(fetch.getByText('Body cut')).toBeTruthy()
+    expect(fetch.queryByText('内容已截断')).toBeNull()
+  })
+})

@@ -15,6 +15,7 @@ import {
 } from '@deepseek-ai/dsh-client-runtime/client'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+import { zhHant as commonZhHant } from '@deepseek-ai/dsh-client-locale/src/locales/zh-Hant.ts'
 import type {
   ConversationSnapshot, RunningToolCall, SessionId, SessionListState, ToolResultNode, WorkspaceListState,
 } from '@deepseek-ai/dsh-client-runtime/client'
@@ -23,7 +24,7 @@ import type { SelectionTarget } from '@deepseek-ai/dsh-client-ui-conversation/cl
 import { CHAT_READ_MAX_LINES, readCardModel } from '../src/client/tool/models/read-card-model.ts'
 import { createChatStore } from '@deepseek-ai/dsh-client-ui-conversation/src/client/stores.ts'
 import { GenericToolCard, type GenericToolCardProps } from '../src/client/tool/toolviews/GenericToolCard.tsx'
-import { zh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
+import { zh, zhHant } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
 import { DetailsPanel } from '@deepseek-ai/dsh-client-ui-conversation/src/client/skeleton/DetailsPanel.tsx'
 import { ReadRow, readToolview } from '../src/client/tool/toolviews/read-row.tsx'
 import { renderToolDetails, SessionProviderStub, toolChatSnapshot } from './tool-details-render.client.tsx'
@@ -205,6 +206,14 @@ describe('ReadRow keyed toolview', () => {
     toggleRow(view)
     expect(view.container.querySelector('[data-read]')).toBeNull()
     expect(view.getAllByText('src/a.ts').length).toBe(1)
+  })
+
+  it('injects Traditional Chinese chrome on the expanded read card', () => {
+    const tHant = makeTranslate(zhHant, commonZhHant)
+    const view = render(<ReadRow {...{ ...rowProps(settled()), t: tHant }} />)
+    toggleRow(view)
+    expect(view.getByText('顯示 3 / 180 行')).toBeTruthy()
+    expect(view.queryByText('显示 3 / 180 行')).toBeNull()
   })
 
   it('the path summary opens the file through the host', () => {

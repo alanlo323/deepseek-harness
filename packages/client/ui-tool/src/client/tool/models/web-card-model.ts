@@ -12,8 +12,24 @@
  * a running call always takes the generic path.
  * @module
  */
-import type { WebBlockProps } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { WebBlockLabels, WebBlockProps } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ToolCallBlock } from './tool-call-model.ts'
+
+/**
+ * Build the WebBlock display copy from the conversation locale seat —
+ * the one place the primitive's label surface pairs with this package's
+ * dictionary, shared by every web render site (chat row, details panel).
+ * @param t - the render site's conversation locale seat.
+ * @returns the full label set for {@link WebBlockProps}'s `labels`.
+ */
+export function webBlockLabels(t: TranslateNS<'conversation'>): WebBlockLabels {
+  return {
+    noResults: t('web.noResults'),
+    sourcesTruncated: t('web.sourcesTruncated'),
+    contentTruncated: t('web.contentTruncated'),
+  }
+}
 
 /**
  * Derive the web-card props for a tool call, or null when this call is not a
@@ -61,7 +77,6 @@ export function webCardModel(block: ToolCallBlock): WebBlockProps | null {
   // an unknown `card` tag takes above. The static union narrows `kind` to
   // `'fetch'` here, but the runtime value is off the wire, so the guard and its
   // null fallthrough are load-bearing despite the type.
-  // oxlint-disable-next-line typescript/no-unnecessary-condition
   if (result.kind === 'fetch') {
     return {
       kind: 'fetch',

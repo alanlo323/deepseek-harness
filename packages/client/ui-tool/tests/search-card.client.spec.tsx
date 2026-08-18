@@ -19,8 +19,9 @@ import type { ToolResultView } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SelectionTarget } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+import { zhHant as commonZhHant } from '@deepseek-ai/dsh-client-locale/src/locales/zh-Hant.ts'
 import { CHAT_SEARCH_MAX_LINES, searchCardModel } from '../src/client/tool/models/search-card-model.ts'
-import { zh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
+import { zh, zhHant } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
 import { createChatStore } from '@deepseek-ai/dsh-client-ui-conversation/src/client/stores.ts'
 import { GenericToolCard, type GenericToolCardProps } from '../src/client/tool/toolviews/GenericToolCard.tsx'
 import { DetailsPanel } from '@deepseek-ai/dsh-client-ui-conversation/src/client/skeleton/DetailsPanel.tsx'
@@ -256,6 +257,14 @@ describe('SearchRow keyed card', () => {
     expect(searchKindOf(view.container)).toBe('matches')
     // The card's copy control lives inside the expanded body.
     expect(view.getByText('复制')).toBeTruthy()
+  })
+
+  it('injects Traditional Chinese chrome on the expanded search card', () => {
+    const tHant = makeTranslate(zhHant, commonZhHant)
+    const view = render(<SearchRow {...{ ...rowProps(settledGrep(), 'grep'), t: tHant }} />)
+    toggleRow(view)
+    expect(view.getByText('複製')).toBeTruthy()
+    expect(view.queryByText('复制')).toBeNull()
   })
 
   it('expands to the glob path card', () => {

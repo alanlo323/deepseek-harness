@@ -13,6 +13,20 @@ export const zh = {
   'confirm.enable': '启用 Full access',
 } satisfies Record<string, string>
 
+
+/** Traditional Chinese dictionary, checked complete against the zh key set. */
+export const zhHant = {
+  'title': '權限',
+  'description': '選擇新會話的預設權限模式',
+  'loading': '載入中',
+  'unavailable': '不可用',
+  'confirm.title': '確認啟用 Full access？',
+  'confirm.description': '啟用 Full access 後，新會話將減少確認步驟，並且可以直接執行更多操作，包括敏感操作、檔案修改或外部命令。僅建議在你信任後續任務時使用。',
+  'confirm.acknowledge': '我已了解風險，並願意繼續',
+  'confirm.cancel': '取消',
+  'confirm.enable': '啟用 Full access',
+}
+
 /** The settings.permission namespace key union. */
 export type PermissionSettingsKey = keyof typeof zh
 
@@ -37,6 +51,16 @@ export const accessZh = {
   'confirm.cancel': '取消',
   'confirm.enable': '启用 Full access',
 } satisfies Record<string, string>
+
+
+/** Traditional Chinese dictionary, checked complete against the zh key set. */
+export const accessZhHant = {
+  'confirm.title': '確認啟用 Full access？',
+  'confirm.description': '啟用 Full access 後，agent 將減少確認步驟，並且可以直接執行更多操作，包括敏感操作、檔案修改或外部命令。僅建議在你信任當前任務時使用。',
+  'confirm.acknowledge': '我已了解風險，並願意繼續',
+  'confirm.cancel': '取消',
+  'confirm.enable': '啟用 Full access',
+}
 
 /** Current-session popup-gate key union. */
 export type PermissionAccessKey = keyof typeof accessZh

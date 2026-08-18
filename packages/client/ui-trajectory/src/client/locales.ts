@@ -45,6 +45,24 @@ export const zh: Record<TrajectoryKey, string> = {
   'toolbar.searchPlaceholder': '搜索',
 }
 
+/** Traditional Chinese dictionary, checked complete against the zh key set. */
+export const zhHant = {
+  'view.trajectory': '軌跡',
+  'toolbar.aria': '軌跡工具欄',
+  'toolbar.duration': 'Duration',
+  'toolbar.useActualDuration': 'Use actual duration',
+  'toolbar.useEqualWidth': 'Use equal-width operations',
+  'toolbar.actualTime': '實際時間',
+  'toolbar.turns': 'Turns',
+  'toolbar.expandTurns': 'Expand turns',
+  'toolbar.collapseTurns': 'Collapse turns',
+  'toolbar.calls': 'Calls',
+  'toolbar.expandCalls': 'Expand calls',
+  'toolbar.collapseCalls': 'Collapse calls',
+  'toolbar.search': '搜尋軌跡',
+  'toolbar.searchPlaceholder': '搜尋',
+} satisfies typeof zh
+
 /** English dictionary. */
 export const en: Record<TrajectoryKey, string> = {
   'view.trajectory': 'Trajectory',

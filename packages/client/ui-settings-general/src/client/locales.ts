@@ -10,6 +10,17 @@ export const zh = {
   'general.nav': '通用设置',
 } satisfies Record<string, string>
 
+
+/** Traditional Chinese dictionary, checked complete against the zh key set. */
+export const zhHant = {
+  'trigger': '設定',
+  'title': '設定',
+  'close': '關閉',
+  'openDocument': '打開配置檔案',
+  'openDocument.error': '無法打開配置檔案',
+  'general.nav': '通用設定',
+}
+
 /** The settings namespace key union. */
 export type SettingsKey = keyof typeof zh
 

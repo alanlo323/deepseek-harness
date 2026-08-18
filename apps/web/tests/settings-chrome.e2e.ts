@@ -399,7 +399,7 @@ describe('web e2e: settings modal and General preferences', () => {
     const zhDialog = page.getByRole('dialog', { name: '设置' })
     await zhDialog.waitFor({ timeout: 10_000 })
     // The Language selector pill shows the active locale's own name.
-    const selector = zhDialog.getByRole('button', { name: '中文' })
+    const selector = zhDialog.getByRole('button', { name: '简体中文' })
     expect(await selector.getAttribute('aria-haspopup')).toBe('menu')
     await selector.click()
     await page.getByRole('menuitem', { name: 'English' }).click()
@@ -444,13 +444,34 @@ describe('web e2e: settings modal and General preferences', () => {
 
     await enTrigger.click()
     await page.getByRole('dialog', { name: 'Settings' }).getByRole('button', { name: 'English' }).click()
-    await page.getByRole('menuitem', { name: '中文' }).click()
+    await page.getByRole('menuitem', { name: '简体中文' }).click()
     await page.getByRole('dialog', { name: '设置' }).waitFor({ timeout: 10_000 })
     expect(await page.evaluate(() => localStorage.getItem('dsh.locale'))).toBeNull()
     await expect.poll(async () => readFile(join(scaffold.harnessHome, 'settings.yaml'), 'utf8'), { timeout: 5_000 })
       .toMatch(/locale:\n\s+preference: zh/)
     await page.keyboard.press('Escape')
     expect(tripwire.pageErrors).toEqual([])
+  }, 90_000)
+
+  it('opens a Traditional Chinese browser in zh-Hant without any stored preference', async () => {
+    const fresh = await launchWebScaffold({})
+    const hantPage = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: 'zh-TW' })
+    const hantTripwire = watchConsole(hantPage)
+    onTestFailed(() => saveFailureShot(hantPage, 'web-e2e-settings-browser-language-zh-tw'))
+    try {
+      await hantPage.goto(fresh.baseUrl, { waitUntil: 'load' })
+      await hantPage.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+      expect(await hantPage.evaluate(() => localStorage.getItem('dsh.locale'))).toBeNull()
+      await hantPage.getByRole('button', { name: '設定', exact: true }).click()
+      const dialog = hantPage.getByRole('dialog', { name: '設定' })
+      await dialog.waitFor({ timeout: 10_000 })
+      await dialog.getByRole('button', { name: '繁體中文' }).waitFor({ timeout: 10_000 })
+      expect(hantTripwire.pageErrors).toEqual([])
+      expect(hantTripwire.warnings).toEqual([])
+    } finally {
+      await hantPage.close()
+      await fresh.close()
+    }
   }, 90_000)
 
   it('opens an English browser in English without any stored preference', async () => {

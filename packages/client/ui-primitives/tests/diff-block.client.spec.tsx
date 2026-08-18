@@ -180,3 +180,23 @@ describe('DiffBlock copy', () => {
     expect(writeText).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('DiffBlock labels', () => {
+  it('renders injected copy when labels are supplied', () => {
+    render(
+      <DiffBlock
+        diffs={[{ path: 'a.ts', oldText: null, newText: added(DEFAULT_DIFF_MAX_LINES) }]}
+        labels={{
+          copy: 'Copy',
+          collapse: 'Collapse',
+          collapseAria: 'Collapse diff',
+          expand: hidden => `${hidden} more`,
+          expandAria: hidden => `Expand ${hidden}`,
+        }}
+      />,
+    )
+    expect(screen.getByRole('button', { name: 'Copy' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Expand / })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '复制' })).toBeNull()
+  })
+})

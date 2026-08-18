@@ -12,6 +12,16 @@ export const zh = {
   'produced.showInFolder': '在文件夹中显示',
 }
 
+
+/** Traditional Chinese dictionary, checked complete against the zh key set. */
+export const zhHant = {
+  'produced.label': '產物',
+  'produced.moreOne': '+ 1 個檔案',
+  'produced.more': '+ {count} 個檔案',
+  'produced.open': '打開 {name}',
+  'produced.showInFolder': '在資料夾中顯示',
+}
+
 /** English dictionary (same key set). */
 export const en: Record<DeliverablesKey, string> = {
   'produced.label': 'Produced',

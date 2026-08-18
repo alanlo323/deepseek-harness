@@ -141,6 +141,7 @@ describe('ui-settings-models apply', () => {
     // The (ns, locale) seats are free again — the dictionary disposers ran.
     expect(() => b.locale.register('settings.models', 'zh', {})).not.toThrow()
     expect(() => b.locale.register('settings.models', 'en', {})).not.toThrow()
+    expect(() => b.locale.register('settings.models', 'zh-Hant', {})).not.toThrow()
   })
 
   it('keeps remote-browser acknowledgement in process memory', async () => {

@@ -8,6 +8,15 @@ export const zh = {
   'appearance.system': '跟随系统',
 } satisfies Record<string, string>
 
+
+/** Traditional Chinese dictionary, checked complete against the zh key set. */
+export const zhHant = {
+  'appearance.title': '外觀',
+  'appearance.light': '淺色',
+  'appearance.dark': '深色',
+  'appearance.system': '跟隨系統',
+}
+
 /** The settings.theme namespace key union. */
 export type ThemeKey = keyof typeof zh
 

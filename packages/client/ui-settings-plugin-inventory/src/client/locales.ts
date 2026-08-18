@@ -22,6 +22,29 @@ export const zh = {
   unloading: '卸载中',
 } satisfies Record<string, string>
 
+
+/** Traditional Chinese dictionary, checked complete against the zh key set. */
+export const zhHant = {
+  tab: '插件列表',
+  loading: '正在讀取插件…',
+  error: '暫時無法讀取插件。',
+  retry: '重試',
+  search: '搜尋插件',
+  catalog: '插件列表',
+  empty: '暫無插件。',
+  emptySearch: '沒有匹配的插件。',
+  enabledTag: '已啟用',
+  disabledTag: '已停用',
+  configuration: '配置狀態',
+  cordis: 'Cordis 狀態',
+  unobserved: '未掛載',
+  pending: '等待依賴',
+  loadingPhase: '載入中',
+  active: '已掛載',
+  failed: '掛載失敗',
+  unloading: '卸載中',
+}
+
 /** Plugin inventory locale key union. */
 export type PluginInventoryLocaleKey = keyof typeof zh
 

@@ -211,4 +211,27 @@ describe('SearchBlock copy', () => {
     expect(view.container.firstElementChild?.classList.contains('x')).toBe(true)
     expect(view.container.firstElementChild?.getAttribute('data-search')).toBe('paths')
   })
+
+  it('renders injected summary and empty copy when labels are supplied', () => {
+    const labelled = render(
+      <SearchBlock
+        kind="matches"
+        truncated
+        total={99}
+        files={[group('a.ts', 2)]}
+        labels={{
+          shownOfTotal: (shown, total) => `Showing ${shown} / ${total}`,
+          matches: (count, files) => `${count} matches · ${files} files`,
+        }}
+      />,
+    )
+    expect(labelled.getByText('Showing 2 / 99 matches · 1 files')).toBeTruthy()
+    expect(labelled.queryByText(/显示|处匹配/u)).toBeNull()
+    cleanup()
+    const empty = render(
+      <SearchBlock kind="paths" truncated={false} total={0} paths={[]} labels={{ empty: 'No results' }} />,
+    )
+    expect(empty.getByText('No results')).toBeTruthy()
+    expect(empty.queryByText('无结果')).toBeNull()
+  })
 })

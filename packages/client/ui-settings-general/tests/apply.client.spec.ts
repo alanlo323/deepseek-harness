@@ -130,6 +130,7 @@ describe('ui-settings-general apply', () => {
     // The (ns, locale) seats are free again — the dictionary disposer ran.
     expect(() => b.locale.register('settings', 'zh', {})).not.toThrow()
     expect(() => b.locale.register('settings', 'en', {})).not.toThrow()
+    expect(() => b.locale.register('settings', 'zh-Hant', {})).not.toThrow()
   })
 
   it('the nav label thunk follows the active locale without re-registration', async () => {

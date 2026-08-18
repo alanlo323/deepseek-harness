@@ -21,8 +21,31 @@
  * lost.
  * @module
  */
-import type { SearchBlockProps, SearchFileGroup } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { SearchBlockLabels, SearchBlockProps, SearchFileGroup } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ToolCallBlock } from './tool-call-model.ts'
+
+/**
+ * Build the SearchBlock display copy from the conversation locale seat —
+ * the one place the primitive's label surface pairs with this package's
+ * dictionary, shared by every search render site (chat row, details panel).
+ * @param t - the render site's conversation locale seat.
+ * @returns the full label set for {@link SearchBlockProps}'s `labels`.
+ */
+export function searchBlockLabels(t: TranslateNS<'conversation'>): SearchBlockLabels {
+  return {
+    shownOfTotal: (shown, total) => t('search.shownOfTotal', { shown, total }),
+    paths: count => t('search.paths', { count }),
+    matches: (count, files) => t('search.matches', { count, files }),
+    empty: t('search.empty'),
+    copy: t('copy'),
+    copied: t('copied'),
+    collapseAria: t('search.collapseAria'),
+    collapse: t('collapse'),
+    expandAria: hidden => t('search.expandAria', { n: hidden }),
+    expand: hidden => t('search.expandRest', { n: hidden }),
+  }
+}
 
 /**
  * Distributive `Omit`: a plain `Omit<A | B, K>` keeps only the keys common to
@@ -32,7 +55,7 @@ import type { ToolCallBlock } from './tool-call-model.ts'
 type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : never
 
 /** The {@link SearchBlockProps} union minus each render site's own fields. */
-type SearchBlockModelProps = DistributiveOmit<SearchBlockProps, 'maxLines' | 'className'>
+type SearchBlockModelProps = DistributiveOmit<SearchBlockProps, 'maxLines' | 'className' | 'labels'>
 
 /**
  * Result rows the chat row's resident search body shows before collapsing the
@@ -151,7 +174,6 @@ export function searchCardModel(block: ToolCallBlock): SearchCardModel | null {
   // client does not compile. Guard the paths shape explicitly: an unknown shape
   // falls to the generic path rather than being rendered as a paths card, which
   // would leave SearchBlock calling `.length`/`.map` on an absent `paths`.
-  // oxlint-disable-next-line typescript/no-unnecessary-condition -- shape is wire data; the compiled union cannot prove this exhaustive.
   if (result.shape !== 'paths') return null
   // `paths` is likewise unchecked by the wire schema; a known shape with a
   // missing/malformed array would crash the paths card at `.map`.

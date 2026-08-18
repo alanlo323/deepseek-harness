@@ -8,6 +8,15 @@ export const zh = {
   'toggle.collapse': '收起侧边栏',
 } satisfies Record<string, string>
 
+
+/** Traditional Chinese dictionary, checked complete against the zh key set. */
+export const zhHant = {
+  'session.new': '新會話',
+  'session.new.label': '新建會話',
+  'toggle.open': '打開側邊欄',
+  'toggle.collapse': '收合側邊欄',
+}
+
 /** The sidebar namespace key union. */
 export type SidebarKey = keyof typeof zh
 

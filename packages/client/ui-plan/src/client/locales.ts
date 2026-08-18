@@ -8,6 +8,15 @@ export const zh = {
   'chip.off.title': 'plan mode 已关闭 — 点击开启（/plan）',
 } satisfies Record<string, string>
 
+
+/** Traditional Chinese dictionary, checked complete against the zh key set. */
+export const zhHant = {
+  'chip.on.aria': 'plan mode 已開啟，按下關閉',
+  'chip.on.title': 'plan mode 已開啟 — 點擊關閉（/plan off）',
+  'chip.off.aria': 'plan mode 已關閉，按下開啟',
+  'chip.off.title': 'plan mode 已關閉 — 點擊開啟（/plan）',
+}
+
 /** The plan namespace key union. */
 export type PlanKey = keyof typeof zh
 

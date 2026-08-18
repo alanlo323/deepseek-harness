@@ -17,13 +17,14 @@ import type { ToolCallView, ToolResultView } from '@deepseek-ai/dsh-api-remotes/
 import type { SelectionTarget } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+import { zhHant as commonZhHant } from '@deepseek-ai/dsh-client-locale/src/locales/zh-Hant.ts'
 import { CHAT_DIFF_MAX_LINES, diffCardModel } from '../src/client/tool/models/diff-card-model.ts'
 import { createChatStore } from '@deepseek-ai/dsh-client-ui-conversation/src/client/stores.ts'
 import { GenericToolCard, type GenericToolCardProps } from '../src/client/tool/toolviews/GenericToolCard.tsx'
 import { DetailsPanel } from '@deepseek-ai/dsh-client-ui-conversation/src/client/skeleton/DetailsPanel.tsx'
 import { FileMutationRow, fileMutationToolview } from '../src/client/tool/toolviews/file-mutation-row.tsx'
 import { renderToolDetails, SessionProviderStub, toolChatSnapshot } from './tool-details-render.client.tsx'
-import { zh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
+import { zh, zhHant } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
 
 afterEach(cleanup)
 
@@ -185,6 +186,14 @@ describe('FileMutationRow diff card', () => {
     expect(view.getByText('复制')).toBeTruthy()
   })
 
+  it('injects Traditional Chinese chrome on the expanded diff card', () => {
+    const tHant = makeTranslate(zhHant, commonZhHant)
+    const view = render(<FileMutationRow {...{ ...rowProps(settled()), t: tHant }} />)
+    toggleRow(view)
+    expect(view.getByText('複製')).toBeTruthy()
+    expect(view.queryByText('复制')).toBeNull()
+  })
+
   it('the summary is a path link that opens the tool path through the host', () => {
     const openFile = vi.fn()
     const view = render(<FileMutationRow {...{ ...rowProps(settled()), openFile }} />)
@@ -306,7 +315,7 @@ describe('fileMutationToolview registration', () => {
 })
 
 describe('DetailsPanel diff Output section', () => {
-  function mount(snapshot: ConversationSnapshot, selection: SelectionTarget | null, cwd?: string) {
+  function mount(snapshot: ConversationSnapshot, selection: SelectionTarget | null, cwd?: string, translate = t) {
     localStorage.clear()
     const chat = createChatStore().create()
     if (selection !== null) chat.actions.select(selection)
@@ -327,7 +336,7 @@ describe('DetailsPanel diff Output section', () => {
     return render(
       <DetailsPanel
         SessionProvider={SessionProviderStub}
-        renderSlot={renderToolDetails(t)}
+        renderSlot={renderToolDetails(translate)}
         sessionId={SID}
         useSession={bindSnapshotSelector({ getSnapshot: () => snapshot, subscribe: () => () => {} })}
         useSessions={bindSnapshotSelector(sessions)}
@@ -344,7 +353,7 @@ describe('DetailsPanel diff Output section', () => {
         useStore={bindSnapshotSelector(chat)}
         actions={chat.actions}
         closeDetails={vi.fn()}
-        t={t}
+        t={translate}
       />,
     )
   }
@@ -369,6 +378,14 @@ describe('DetailsPanel diff Output section', () => {
     expect(view.getByText(/"file_path"/)).toBeTruthy()
     expect(view.container.querySelector('[data-diff]')).not.toBeNull()
     expect(view.getByText('hello fixture')).toBeTruthy()
+  })
+
+  it('injects Traditional Chinese chrome in the details Output section', () => {
+    const tHant = makeTranslate(zhHant, commonZhHant)
+    const view = mount(snapshot({ nodes: [settled()] }), target, undefined, tHant)
+    const diff = view.container.querySelector('[data-diff]')
+    expect(diff?.textContent).toContain('複製')
+    expect(view.queryByText('复制')).toBeNull()
   })
 
   it('a running diff call renders its intended change, not the 运行中… placeholder', () => {

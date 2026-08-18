@@ -192,10 +192,22 @@ describe('LocaleRuntime', () => {
     expect(host.listenerCount()).toBe(0)
   })
 
-  it('opens provisionally in the browser language, matching regional variants on their primary subtag', () => {
+  it('opens provisionally in the browser language, matching English on the primary subtag and Chinese on script then region', () => {
     stubLanguages('en-GB', 'zh-CN')
     expect(make().svc.getLocale().active).toBe('en')
     stubLanguages('zh-Hant-TW')
+    expect(make().svc.getLocale().active).toBe('zh-Hant')
+    stubLanguages('zh-TW')
+    expect(make().svc.getLocale().active).toBe('zh-Hant')
+    stubLanguages('zh-HK')
+    expect(make().svc.getLocale().active).toBe('zh-Hant')
+    stubLanguages('zh-Hans-CN')
+    expect(make().svc.getLocale().active).toBe('zh')
+    stubLanguages('zh-Hans-TW')
+    expect(make().svc.getLocale().active).toBe('zh')
+    stubLanguages('zh-Hant-CN')
+    expect(make().svc.getLocale().active).toBe('zh-Hant')
+    stubLanguages('zh-CN')
     expect(make().svc.getLocale().active).toBe('zh')
     // An unshipped language walks the list to the first one this app ships.
     stubLanguages('fr-FR', 'en-US')
@@ -230,10 +242,11 @@ describe('LocaleRuntime', () => {
     expect(svc.getLocale().active).toBe('zh')
   })
 
-  it('exposes the two shipped locales with self-described labels', () => {
+  it('exposes the shipped locales with self-described labels', () => {
     const { svc } = make()
     expect(svc.getLocale().locales).toEqual([
-      { id: 'zh', label: '中文' },
+      { id: 'zh', label: '简体中文' },
+      { id: 'zh-Hant', label: '繁體中文' },
       { id: 'en', label: 'English' },
     ])
   })

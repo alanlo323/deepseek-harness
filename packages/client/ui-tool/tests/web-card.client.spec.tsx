@@ -29,7 +29,8 @@ import { WebRow, webToolview } from '../src/client/tool/toolviews/web-row.tsx'
 import { renderToolDetails, SessionProviderStub, toolChatSnapshot } from './tool-details-render.client.tsx'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
-import { zh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
+import { zhHant as commonZhHant } from '@deepseek-ai/dsh-client-locale/src/locales/zh-Hant.ts'
+import { zh, zhHant } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
 
 afterEach(cleanup)
 
@@ -165,6 +166,19 @@ describe('chat row web body', () => {
     const card = view.container.querySelector('[data-web="fetch"]')
     expect(card?.querySelector('a')?.getAttribute('href')).toBe('https://example.com/page')
     expect(view.getByText('HTTP 200')).toBeTruthy()
+  })
+
+  it('injects Traditional Chinese chrome on an empty search card', () => {
+    const tHant = makeTranslate(zhHant, commonZhHant)
+    const view = render(<WebRow {...{
+      ...rowProps(settledSearch({
+        resultView: { card: 'web', kind: 'search', truncated: false, sources: [] },
+      }), 'web_search'),
+      t: tHant,
+    }} />)
+    toggleRow(view)
+    expect(view.getByText('未找到結果')).toBeTruthy()
+    expect(view.queryByText('未找到结果')).toBeNull()
   })
 
   it('a running web call is the summary row alone, with nothing to expand', () => {
