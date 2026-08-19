@@ -312,6 +312,7 @@ function nodeCompatSmokeGates(options: { cliSmoke?: boolean } = {}): Gate[] {
       'vitest',
       'run',
       'packages/workflow/workflow-worker-thread/tests/source-worker.compat.spec.ts',
+      'packages/code-runtime/code-runtime-worker-thread/tests/source-worker.compat.spec.ts',
     ], { label: 'source worker smoke' }),
     pnpmExec('jsonl-zstd-smoke', [
       'vitest',

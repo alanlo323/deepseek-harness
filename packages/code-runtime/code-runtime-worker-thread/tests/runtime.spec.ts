@@ -3,6 +3,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { WorkerThreadCodeRuntime } from '@deepseek-ai/dsh-code-runtime-worker-thread'
 import type { Config } from '@deepseek-ai/dsh-code-runtime-worker-thread'
 import type { CodeBindingFunction, CodeBindingNamespace, CodeRunResult } from '@deepseek-ai/dsh-code-runtime'
+import { sourceWorkerExecArgv } from '../src/spawn.ts'
 
 /**
  * Integration suite over REAL worker threads (no mocks — workers are cheap
@@ -141,8 +142,27 @@ describe('WorkerThreadCodeRuntime — programs and bindings (real workers)', () 
 
   it('gives the program an EMPTY environment', async () => {
     const { runtime } = await setup()
-    const result = await runtime.run({ program: 'return JSON.stringify(process.env)', bindings: [] })
-    expect(result.value).toBe('{}')
+    process.env.CODE_RUNTIME_ENV_CANARY = 'leak me'
+    try {
+      const result = await runtime.run({
+        program: 'return { canary: process.env.CODE_RUNTIME_ENV_CANARY ?? null, env: JSON.stringify(process.env) }',
+        bindings: [],
+      })
+      expect(result.error).toBeUndefined()
+      expect(result.value).toEqual({ canary: null, env: '{}' })
+    } finally {
+      delete process.env.CODE_RUNTIME_ENV_CANARY
+    }
+  })
+
+  it('gives the unbuilt worker sourceWorkerExecArgv and not host loader flags', async () => {
+    const { runtime } = await setup()
+    const result = await runtime.run({
+      program: 'return { execArgv: process.execArgv }',
+      bindings: [],
+    })
+    expect(result.error).toBeUndefined()
+    expect(result.value).toEqual({ execArgv: sourceWorkerExecArgv() })
   })
 
   it('rejects a non-lossless completion instead of replacing it with rendered text', async () => {

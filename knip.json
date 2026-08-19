@@ -454,7 +454,8 @@
     "packages/code-runtime/code-runtime-worker-thread": {
       "entry": [
         "tests/**/*.spec.ts",
-        "tests/**/*.e2e.ts"
+        "tests/**/*.e2e.ts",
+        "tests/source-worker-launch.ts"
       ],
       "project": [
         "src/**/*.ts",
