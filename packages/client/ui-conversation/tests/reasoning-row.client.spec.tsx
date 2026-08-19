@@ -38,25 +38,119 @@ afterEach(() => {
 
 const t = makeTranslate(zh, commonZh)
 
+function overflowMetrics(element: HTMLElement): void {
+  Object.defineProperties(element, {
+    scrollWidth: { configurable: true, value: 300 },
+    clientWidth: { configurable: true, value: 100 },
+  })
+}
+
 describe('ReasoningRow', () => {
-  it('follows the latest streaming line, scrolls to its end, then restores the settled first line', () => {
+  it('keeps the streaming prefix at the left edge, then restores the settled first line', () => {
     const view = render(
       <AssistantMarkdown
         t={t}
-        blocks={[{ kind: 'reasoning', text: 'Inspect the session\nNewest reasoning tokens' }]}
+        blocks={[{ kind: 'reasoning', text: 'Inspect the session and keep reading this paragraph' }]}
         streaming
       />,
     )
     expect(view.getByText('运行中')).toBeTruthy()
-    const summary = view.getByText('Newest reasoning tokens')
-    Object.defineProperties(summary, {
-      scrollWidth: { configurable: true, value: 300 },
-      clientWidth: { configurable: true, value: 100 },
-    })
+    const summary = view.getByText('Inspect the session and keep reading this paragraph')
+    overflowMetrics(summary)
 
     view.rerender(
       <AssistantMarkdown
         t={t}
+        blocks={[{ kind: 'reasoning', text: 'Inspect the session and keep reading this paragraph as tokens arrive' }]}
+        streaming
+      />,
+    )
+    flushAnimationFrames(3)
+    expect(summary.scrollLeft).toBe(0)
+    expect(summary.hasAttribute('data-follow-end')).toBe(false)
+
+    view.rerender(
+      <AssistantMarkdown
+        t={t}
+        blocks={[{ kind: 'reasoning', text: 'Inspect the session and keep reading this paragraph as tokens arrive' }]}
+        streaming={false}
+      />,
+    )
+    flushAnimationFrames(3)
+    expect(view.getByText('Inspect the session and keep reading this paragraph as tokens arrive')).toBeTruthy()
+    expect(view.queryByText('运行中')).toBeNull()
+    expect(summary.scrollLeft).toBe(0)
+    expect(summary.hasAttribute('data-follow-end')).toBe(false)
+  })
+
+  it('keeps the prefix on the first paragraph when later tokens share that paragraph', () => {
+    const view = render(
+      <AssistantMarkdown
+        t={t}
+        blocks={[{ kind: 'reasoning', text: 'First paragraph stays readable.\nLater tokens stay in the same paragraph' }]}
+        streaming
+      />,
+    )
+    const summary = view.getByText(/First paragraph stays readable/)
+    expect(summary.textContent).toBe('First paragraph stays readable.\nLater tokens stay in the same paragraph')
+    overflowMetrics(summary)
+    flushAnimationFrames(3)
+    expect(summary.scrollLeft).toBe(0)
+    expect(summary.hasAttribute('data-follow-end')).toBe(false)
+  })
+
+  it('switches the prefix to the new paragraph after a blank line', () => {
+    const view = render(
+      <AssistantMarkdown
+        t={t}
+        blocks={[{ kind: 'reasoning', text: 'First paragraph stays readable.\n\nSecond paragraph is in progress' }]}
+        streaming
+      />,
+    )
+    const summary = view.getByText('Second paragraph is in progress')
+    overflowMetrics(summary)
+    flushAnimationFrames(3)
+    expect(summary.scrollLeft).toBe(0)
+    expect(view.queryByText('First paragraph stays readable.')).toBeNull()
+
+    view.rerender(
+      <AssistantMarkdown
+        t={t}
+        blocks={[{ kind: 'reasoning', text: 'First paragraph stays readable.\r\n\r\nCRLF paragraph is in progress' }]}
+        streaming
+      />,
+    )
+    expect(view.getByText('CRLF paragraph is in progress')).toBeTruthy()
+    expect(view.queryByText('Second paragraph is in progress')).toBeNull()
+  })
+
+  it('keeps the previous paragraph when a trailing blank line has no following text', () => {
+    const view = render(
+      <AssistantMarkdown
+        t={t}
+        blocks={[{ kind: 'reasoning', text: 'Keep this paragraph\n\n' }]}
+        streaming
+      />,
+    )
+    expect(view.getByText('Keep this paragraph')).toBeTruthy()
+  })
+
+  it('follows the latest streaming line when previewMode is follow-end', () => {
+    const view = render(
+      <AssistantMarkdown
+        t={t}
+        previewMode="follow-end"
+        blocks={[{ kind: 'reasoning', text: 'Inspect the session\nNewest reasoning tokens' }]}
+        streaming
+      />,
+    )
+    const summary = view.getByText('Newest reasoning tokens')
+    overflowMetrics(summary)
+
+    view.rerender(
+      <AssistantMarkdown
+        t={t}
+        previewMode="follow-end"
         blocks={[{ kind: 'reasoning', text: 'Inspect the session\nNewest reasoning tokens keep arriving' }]}
         streaming
       />,
@@ -71,13 +165,13 @@ describe('ReasoningRow', () => {
     view.rerender(
       <AssistantMarkdown
         t={t}
+        previewMode="follow-end"
         blocks={[{ kind: 'reasoning', text: 'Inspect the session\nNewest reasoning tokens keep arriving\n' }]}
         streaming={false}
       />,
     )
     flushAnimationFrames(3)
     expect(view.getByText('Inspect the session')).toBeTruthy()
-    expect(view.queryByText('运行中')).toBeNull()
     expect(summary.scrollLeft).toBe(0)
     expect(summary.hasAttribute('data-follow-end')).toBe(false)
   })

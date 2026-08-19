@@ -5,8 +5,9 @@ import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import { CONVERSATION_SETTINGS_NAMESPACE, ConversationSettingsSchema } from './submission-settings.ts'
 
 export {
-  BUSY_ENTER_BEHAVIORS, BUSY_ENTER_FIELD, CONVERSATION_SETTINGS_NAMESPACE,
-  DEFAULT_BUSY_ENTER_BEHAVIOR, type BusyEnterBehavior, type ConversationSettings,
+  BUSY_ENTER_BEHAVIORS, BUSY_ENTER_FIELD, COLLAPSED_THINK_PREVIEW_FIELD, COLLAPSED_THINK_PREVIEW_MODES,
+  CONVERSATION_SETTINGS_NAMESPACE, DEFAULT_BUSY_ENTER_BEHAVIOR, DEFAULT_COLLAPSED_THINK_PREVIEW,
+  type BusyEnterBehavior, type CollapsedThinkPreview, type ConversationSettings,
 } from './submission-settings.ts'
 
 /**

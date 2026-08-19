@@ -177,11 +177,9 @@ describe('web e2e: lifecycle & chrome (workspace flow / reload / dark mode)', ()
       try {
         await input.press('Enter')
         if (MODE !== 'record') {
-          const liveTail = page.locator('[data-variant="think"][data-state="running"] [data-follow-end]')
-          await expect.poll(async () => await liveTail.evaluate(element => (
-            element.scrollWidth > element.clientWidth
-              && element.scrollLeft >= element.scrollWidth - element.clientWidth - 1
-          )), { timeout: 10_000, interval: 10 }).toBe(true)
+          const liveThink = page.locator('[data-variant="think"][data-state="running"]')
+          await liveThink.waitFor({ timeout: 10_000 })
+          await expect.poll(() => liveThink.locator('[data-follow-end]').count()).toBe(0)
         }
         return await settled
       } finally {

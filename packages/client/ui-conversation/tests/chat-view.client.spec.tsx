@@ -166,6 +166,7 @@ function makeHarness(init?: Partial<ConversationSnapshot>) {
   // production; the view reads it through the PropsStore useStore share).
   const chat = createChatStore().create()
   const t = makeTranslate(zh, commonZh)
+  const useCollapsedThinkPreview = bindSnapshotSelector(createSnapshotStore<'prefix' | 'follow-end'>('prefix'))
   const toolOwners: Array<{
     callId: string
     toolName: string
@@ -194,7 +195,7 @@ function makeHarness(init?: Partial<ConversationSnapshot>) {
         : undefined
     })
     const nodeProps = <Kind extends ChatNode['kind']>(): ChatNodeViewProps<Kind> => (
-      { ...props, ...nodeOwner, useTurnData } as unknown as ChatNodeViewProps<Kind>
+      { ...props, ...nodeOwner, useTurnData, useCollapsedThinkPreview } as unknown as ChatNodeViewProps<Kind>
     )
     switch (nodeOwner.node.kind) {
       case 'user':
