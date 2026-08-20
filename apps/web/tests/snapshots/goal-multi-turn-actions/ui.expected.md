@@ -22,10 +22,10 @@
   - img
   - img
   - text: Context injection @deepseek-ai/dsh-system-prompt
-- 'button "Think The user''s goal is: \"做两个turn，每个turn输出随机一个包的文件结构。注意你做完一个turn之后，直接输出内容，停止，我们的系统会帮你再开一个turn，你看着做一个类似的\" — which translates to: \"Do two turns, each turn output the file structure of a random package. Note that after you finish one turn, directly output the content and stop; our system will help you open another turn, and you just do something similar.\""':
+- button "Think Let me look at the workspace to understand the environment.":
   - img
   - img
-  - text: "Think The user's goal is: \"做两个turn，每个turn输出随机一个包的文件结构。注意你做完一个turn之后，直接输出内容，停止，我们的系统会帮你再开一个turn，你看着做一个类似的\" — which translates to: \"Do two turns, each turn output the file structure of a random package. Note that after you finish one turn, directly output the content and stop; our system will help you open another turn, and you just do something similar.\""
+  - text: Think Let me look at the workspace to understand the environment.
 - button "Bash Show working directory and its contents":
   - img
   - img
@@ -42,10 +42,10 @@
   - img
   - img
   - text: Bash List packages directory contents
-- button "Think There are 4 packages:":
+- 'button "Think For this turn (turn 1 of 2), I should randomly pick one package and output its file structure. Let me pick randomly — I''ll use $RANDOM or just pick one. Let me use a quick random selection."':
   - img
   - img
-  - text: "Think There are 4 packages:"
+  - text: "Think For this turn (turn 1 of 2), I should randomly pick one package and output its file structure. Let me pick randomly — I'll use $RANDOM or just pick one. Let me use a quick random selection."
 - button "Failed Bash Randomly pick one package directory":
   - img
   - text: Failed Bash Randomly pick one package directory
@@ -65,10 +65,10 @@
   - img
   - img
   - text: Bash List all files in session-reference package
-- 'button "Think Turn 1 is done. Per the objective: \"你做完一个turn之后，直接输出内容，停止\" — after finishing a turn, directly output the content and stop. The system will open another turn."':
+- button "Think Let me output the file structure in a nice tree format.":
   - img
   - img
-  - text: "Think Turn 1 is done. Per the objective: \"你做完一个turn之后，直接输出内容，停止\" — after finishing a turn, directly output the content and stop. The system will open another turn."
+  - text: Think Let me output the file structure in a nice tree format.
 - paragraph:
   - strong: Turn 1 / 2
   - text: — 随机选中的包：

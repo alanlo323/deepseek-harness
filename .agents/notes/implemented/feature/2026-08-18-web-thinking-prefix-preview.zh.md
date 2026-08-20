@@ -10,11 +10,11 @@ Status: implemented
 
 ## 决策
 
-默认的折叠流式摘要是当前空行段落（`\n\n` / `\r\n\r\n`）的开头，包含仍在写入的文字，`scrollLeft` 保持为 `0`，并且没有 `data-follow-end`。出现空行后，摘要来源换成新段落；只有空行、后面还没有字符时，继续显示上一个非空段落。模型始终不输出空行时，前缀停在第一段，已有运行中扫光承担活跃提示。
+默认的折叠流式摘要是当前空行段落（`\n\n` / `\r\n\r\n`）的开头，包含仍在写入的文字，`scrollLeft` 保持为 `0`，并且没有 `data-follow-end`。出现空行后，摘要来源换成新段落；只有空行、后面还没有字符时，继续显示上一个非空段落。模型始终不输出空行时，前缀停在第一段，已有运行中扫光承担活跃提示。该 prefix slot 在世代再次变化时滚动一行，而不是原地替换（[换段推进决策](2026-08-19-web-thinking-paragraph-advance.md)）。
 
 Host 字段 `ui-conversation.collapsedThinkPreview`（`prefix` | `follow-end`，默认 `prefix`）与 `busyEnter` 一起持久化。通用设置行通过 `ThinkPreviewPreference` 写入。`apply()` 只 bind 一次会话 `SettingsScope`，并把它交给 `ComposerSubmissionPolicy` 和 `ThinkPreviewPreference`。实时 `SnapshotStore` 作为 `ChatNodeInjected.hooks.collapsedThinkPreview` 注入 `conversation.chat.node`（不是 `SlotHookFactory`）；只有 `AssistantNodeView` 订阅并把 `previewMode` 传给 `ReasoningRow`。Think 仍在流式输出时切换设置，会在下一次渲染更新该行。`followEnd = running && previewMode === 'follow-end'` 同时驱动摘要、滚动对齐和 `data-follow-end`。
 
-已结算行无论偏好如何，都恢复整块 reasoning 的 `firstLine` 以及 `scrollLeft = 0`。展开后的 `thinkBody` 与 Trajectory Thinking 不变。不改变 session、wire、持久事件或模型可见约定。
+已结算的折叠摘要是 `latestParagraph`，`scrollLeft = 0`，与偏好无关（[结算末段决策](2026-08-20-web-thinking-settled-last-paragraph.md)）。展开后的 `thinkBody` 与 Trajectory Thinking 不变。不改变 session、wire、持久事件或模型可见约定。
 
 `'follow-end'` 的实现仍由[尾部滚动决策](2026-08-02-web-thinking-tail-scroll.md)拥有。
 
@@ -34,4 +34,4 @@ Host 字段 `ui-conversation.collapsedThinkPreview`（`prefix` | `follow-end`，
 
 ## 测试
 
-`packages/client/ui-conversation/tests/reasoning-row.client.spec.tsx` 固定 prefix 默认、空行切换、尾随空行保留、follow-end 选择，以及结算后恢复首行。`assistant-think-preview.client.spec.tsx` 在同一条溢出的流式行上双向翻转 inject store。`think-preview-preference.client.spec.ts` 与 `think-preview-row.client.spec.tsx` 固定 Host 回写和通用设置行。`host.client.spec.ts` 接受两个合法值、拒绝非法值，并在部分更新时让另一字段保持 schema 默认。`chat-apply.client.spec.tsx` 期望 `composer-enter` 然后 `think-preview`。`apps/web/tests/lifecycle-chrome.e2e.ts` 先等到 running Think 行，再断言该行没有 `data-follow-end`；结算态 replay golden 仍是首行。`apps/web/tests/snapshots/settings-chrome/dialog.expected.md` 固定通用设置中的该行。
+`packages/client/ui-conversation/tests/reasoning-row.client.spec.tsx` 固定 prefix 默认、空行切换、尾随空行保留、follow-end 选择、结算后保留末段，以及 prefix 换段滚动。`assistant-think-preview.client.spec.tsx` 在同一条溢出的流式行上双向翻转 inject store。`think-preview-preference.client.spec.ts` 与 `think-preview-row.client.spec.tsx` 固定 Host 回写和通用设置行。`host.client.spec.ts` 接受两个合法值、拒绝非法值，并在部分更新时让另一字段保持 schema 默认。`chat-apply.client.spec.tsx` 期望 `composer-enter` 然后 `think-preview`。`apps/web/tests/lifecycle-chrome.e2e.ts` 先等到 running Think 行，再断言该行没有 `data-follow-end`；结算态 replay 的 Think 名称跟随最后一个空行段落（[结算末段决策](2026-08-20-web-thinking-settled-last-paragraph.md)）。`apps/web/tests/snapshots/settings-chrome/dialog.expected.md` 固定通用设置中的该行。

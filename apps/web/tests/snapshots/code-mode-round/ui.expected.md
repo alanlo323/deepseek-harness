@@ -16,10 +16,10 @@
   - img
   - img
   - text: Context injection @deepseek-ai/dsh-system-prompt
-- 'button "Think The user wants me to write a single `run_code` program that:"':
+- button "Think Let me write this program.":
   - img
   - img
-  - text: "Think The user wants me to write a single `run_code` program that:"
+  - text: Think Let me write this program.
 - button "Code Run bash echo and catch missing file read":
   - img
   - img

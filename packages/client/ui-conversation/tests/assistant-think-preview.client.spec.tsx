@@ -103,15 +103,23 @@ describe('AssistantNodeView Think preview inject', () => {
     expect(summary.hasAttribute('data-follow-end')).toBe(false)
 
     act(() => { preview.set('follow-end') })
+    const followEndSummary = view.getByText('Newest reasoning tokens keep arriving')
+    Object.defineProperties(followEndSummary, {
+      scrollWidth: { configurable: true, value: 300 },
+      clientWidth: { configurable: true, value: 100 },
+    })
     flushAnimationFrames(3)
-    expect(view.getByText('Newest reasoning tokens keep arriving')).toBe(summary)
-    expect(summary.scrollLeft).toBe(200)
-    expect(summary.getAttribute('data-follow-end')).toBe('true')
+    expect(followEndSummary.scrollLeft).toBe(200)
+    expect(followEndSummary.getAttribute('data-follow-end')).toBe('true')
 
     act(() => { preview.set('prefix') })
+    const prefixSummary = view.getByText(/Inspect the session/)
+    Object.defineProperties(prefixSummary, {
+      scrollWidth: { configurable: true, value: 300 },
+      clientWidth: { configurable: true, value: 100 },
+    })
     flushAnimationFrames(3)
-    expect(view.getByText(/Inspect the session/)).toBe(summary)
-    expect(summary.scrollLeft).toBe(0)
-    expect(summary.hasAttribute('data-follow-end')).toBe(false)
+    expect(prefixSummary.scrollLeft).toBe(0)
+    expect(prefixSummary.hasAttribute('data-follow-end')).toBe(false)
   })
 })

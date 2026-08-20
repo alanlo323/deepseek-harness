@@ -54,6 +54,7 @@
   min-width: 0;
   overflow: hidden;
   flex: 1 1 auto;
+  height: 24px;
   color: var(--dsw-alias-label-tertiary);
   font-size: 14px;
   line-height: 24px;
@@ -63,6 +64,27 @@
 
 .summary[data-follow-end] {
   text-overflow: clip;
+}
+
+.line {
+  display: block;
+  overflow: hidden;
+  min-width: 0;
+  width: 100%;
+  height: 24px;
+  line-height: 24px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.track {
+  display: flex;
+  flex-direction: column;
+}
+
+.track[data-advancing] {
+  transform: translateY(-24px); /* one .line / viewport height; % is relative to the 48px track */
+  transition: transform 500ms ease; /* PARAGRAPH_ADVANCE_MS */
 }
 
 .thinkBody {
@@ -77,5 +99,9 @@
 @media (prefers-reduced-motion: reduce) {
   .root[data-state='running'] .row::after {
     animation: none;
+  }
+
+  .track[data-advancing] {
+    transition: none;
   }
 }

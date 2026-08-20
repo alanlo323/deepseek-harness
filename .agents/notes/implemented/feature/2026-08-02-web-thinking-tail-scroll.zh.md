@@ -10,9 +10,9 @@ Web Think 行在结算与流式 block 中都把 reasoning 首行渲染成折叠�
 
 ## 决策
 
-当 `ui-conversation.collapsedThinkPreview` 为 `'follow-end'` 时，只有 reasoning block 是当前流式尾部、且仍处于折叠态的 Think 行会跟随实时输出。其摘要使用最新的非空行，而不是结算后的首行；已有单行摘要元素成为程序化横向滚动区，每次文本更新后钉到 `scrollWidth - clientWidth`。这里刻意直接赋值 `scrollLeft`，通过真实 delta 推进而不虚构独立的跑马灯速度：token 快则移动快，模型停顿则停止，短文本因滚动范围为零而保持静止。默认 `'prefix'` 摘要由[前缀预览决策](2026-08-18-web-thinking-prefix-preview.md)拥有。
+当 `ui-conversation.collapsedThinkPreview` 为 `'follow-end'` 时，只有 reasoning block 是当前流式尾部、且仍处于折叠态的 Think 行会跟随实时输出。其摘要使用最新的非空行，而不是结算后的最后一段；已有单行摘要元素成为程序化横向滚动区，每次文本更新后钉到 `scrollWidth - clientWidth`。这里刻意直接赋值 `scrollLeft`，通过真实 delta 推进而不虚构独立的跑马灯速度：token 快则移动快，模型停顿则停止，短文本因滚动范围为零而保持静止。默认 `'prefix'` 摘要由[前缀预览决策](2026-08-18-web-thinking-prefix-preview.md)拥有。
 
-该行为由已有呈现组件拥有。`AssistantMarkdown` 只在 Think 行运行且为 `'follow-end'` 时选择最新行；`ToolRow` 已经拥有折叠／展开状态，因此由它决定摘要是否追随行内末端。不改变 session、wire、持久事件或模型可见约定。展开会移除折叠摘要，并让完整 reasoning 正文进入普通页面流。该行结算后恢复稳定首行，同时把摘要重置到左端。其他工具摘要与已结算 Think 行保留已有省略号行为。
+该行为由已有呈现组件拥有。`AssistantMarkdown` 只在 Think 行运行且为 `'follow-end'` 时选择最新行；`ToolRow` 已经拥有折叠／展开状态，因此由它决定摘要是否追随行内末端。不改变 session、wire、持久事件或模型可见约定。展开会移除折叠摘要，并让完整 reasoning 正文进入普通页面流。该行结算后保留最后一个空行段落，同时把摘要重置到左端（[结算末段决策](2026-08-20-web-thinking-settled-last-paragraph.md)）。其他工具摘要与已结算 Think 行保留已有省略号行为。
 
 ## 曾考虑的替代方案
 
@@ -28,4 +28,4 @@ Web Think 行在结算与流式 block 中都把 reasoning 首行渲染成折叠�
 
 ## 测试
 
-`packages/client/ui-conversation/tests/reasoning-row.client.spec.tsx` 在 `previewMode` 为 `'follow-end'` 时固定最新行选择、算出的右端滚动位置，以及结算后恢复首行和 `scrollLeft = 0`。默认 prefix 路径、实时 store 切换，以及运行中行没有 `data-follow-end`，由[前缀预览决策](2026-08-18-web-thinking-prefix-preview.md)拥有。`apps/web/tests/lifecycle-chrome.e2e.ts` 中的无密钥组装态 Chromium 场景保持结算态 replay golden 不变，证明历史首行摘要仍然稳定。
+`packages/client/ui-conversation/tests/reasoning-row.client.spec.tsx` 在 `previewMode` 为 `'follow-end'` 时固定最新行选择、算出的右端滚动位置，以及结算后落在最后一段且 `scrollLeft = 0`。默认 prefix 路径、实时 store 切换，以及运行中行没有 `data-follow-end`，由[前缀预览决策](2026-08-18-web-thinking-prefix-preview.md)拥有。结算态 replay 的 Think 名称跟随最后一个空行段落（[结算末段决策](2026-08-20-web-thinking-settled-last-paragraph.md)）。
