@@ -932,7 +932,8 @@ export interface Config {
   models?: DeepSeekCatalogModel[]
   /**
    * Maximum idle interval between outstanding stream reads after the first
-   * content token (default five minutes). Prefill before that token is not
+   * non-empty text, reasoning, or tool-call argument delta (default five
+   * minutes). Prefill and a tool-call header with empty arguments are not
    * capped.
    */
   streamIdleTimeoutMs?: number
@@ -1056,7 +1057,8 @@ export interface PiAiProviderProfile {
   websocketConnectTimeoutMs?: number
   /**
    * Maximum idle interval between outstanding stream reads after the first
-   * content token. Prefill before that token is not capped.
+   * non-empty text, reasoning, or tool-call argument delta. Prefill and a
+   * tool-call header with empty arguments are not capped.
    */
   streamIdleTimeoutMs?: number
   /**
@@ -1214,7 +1216,7 @@ export type PiAiThinkingFormat = NonNullable<OpenAICompletionsCompat['thinkingFo
 
 Depends on: `Api` (`@earendil-works/pi-ai`) · `CacheRetention` (`@earendil-works/pi-ai`) · `Model` (`@earendil-works/pi-ai`) · `ModelThinkingLevel` (`@earendil-works/pi-ai`) · `OpenAICompletionsCompat` (`@earendil-works/pi-ai`) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts) · `ThinkingBudgets` (`@earendil-works/pi-ai`) · `Transport` (`@earendil-works/pi-ai`)
 
-Source: [`packages/llm/llm-pi-ai/src/config.ts:207`](../packages/llm/llm-pi-ai/src/config.ts)
+Source: [`packages/llm/llm-pi-ai/src/config.ts:208`](../packages/llm/llm-pi-ai/src/config.ts)
 
 <a id="deepseek-aidsh-llm-replay"></a>
 

@@ -934,7 +934,8 @@ export interface Config {
   models?: DeepSeekCatalogModel[]
   /**
    * Maximum idle interval between outstanding stream reads after the first
-   * content token (default five minutes). Prefill before that token is not
+   * non-empty text, reasoning, or tool-call argument delta (default five
+   * minutes). Prefill and a tool-call header with empty arguments are not
    * capped.
    */
   streamIdleTimeoutMs?: number
@@ -1058,7 +1059,8 @@ export interface PiAiProviderProfile {
   websocketConnectTimeoutMs?: number
   /**
    * Maximum idle interval between outstanding stream reads after the first
-   * content token. Prefill before that token is not capped.
+   * non-empty text, reasoning, or tool-call argument delta. Prefill and a
+   * tool-call header with empty arguments are not capped.
    */
   streamIdleTimeoutMs?: number
   /**

@@ -32,6 +32,8 @@ export async function mockServer(script: {
   body?: string
   delayMs?: number
   initialDelayMs?: number
+  /** Pause after the first SSE event, then flush the remaining events without that pause. */
+  delayAfterFirstMs?: number
   holdOpen?: boolean
   headers?: Record<string, string>
 }[]): Promise<MockServer> {
@@ -66,6 +68,10 @@ export async function mockServer(script: {
           return
         }
         response.write(`data: ${event}\n\n`)
+        if (index === 1 && behavior.delayAfterFirstMs !== undefined) {
+          setTimeout(writeNext, behavior.delayAfterFirstMs)
+          return
+        }
         if (behavior.delayMs === undefined) writeNext()
         else setTimeout(writeNext, behavior.delayMs)
       }

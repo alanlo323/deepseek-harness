@@ -121,22 +121,29 @@ describe('startsPostTokenIdle', () => {
     })).toBe(false)
   })
 
-  it('starts after a non-empty delta or a content block-start', () => {
+  it('starts only after a non-empty text, reasoning, or tool-call argument delta', () => {
     expect(startsPostTokenIdle({ type: 'text-delta', index: 0, text: 'h' })).toBe(true)
     expect(startsPostTokenIdle({ type: 'reasoning-delta', index: 0, text: 'r' })).toBe(true)
     expect(startsPostTokenIdle({
       type: 'tool-call-delta',
       index: 0,
       id: CallId('c1'),
-      name: 'echo',
-      argumentsDelta: '',
+      name: 'write',
+      argumentsDelta: '{"path"',
     })).toBe(true)
-    expect(startsPostTokenIdle({ type: 'block-start', index: 0, blockType: 'text' })).toBe(true)
-    expect(startsPostTokenIdle({ type: 'block-start', index: 0, blockType: 'reasoning' })).toBe(true)
-    expect(startsPostTokenIdle({ type: 'block-start', index: 0, blockType: 'tool-call' })).toBe(true)
   })
 
-  it('ignores non-content block-start types', () => {
+  it('does not start on block-start or a named empty tool-call frame', () => {
+    expect(startsPostTokenIdle({
+      type: 'tool-call-delta',
+      index: 0,
+      id: CallId('c1'),
+      name: 'write',
+      argumentsDelta: '',
+    })).toBe(false)
+    expect(startsPostTokenIdle({ type: 'block-start', index: 0, blockType: 'text' })).toBe(false)
+    expect(startsPostTokenIdle({ type: 'block-start', index: 0, blockType: 'reasoning' })).toBe(false)
+    expect(startsPostTokenIdle({ type: 'block-start', index: 0, blockType: 'tool-call' })).toBe(false)
     expect(startsPostTokenIdle({ type: 'block-start', index: 0, blockType: 'image' })).toBe(false)
     expect(startsPostTokenIdle({ type: 'block-start', index: 0, blockType: 'tool-result' })).toBe(false)
   })

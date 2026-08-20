@@ -710,6 +710,47 @@ describe('DeepSeekAdapter against a mock server', () => {
     }
   })
 
+  it('does not idle-timeout a tool-call header while arguments are still arriving', async () => {
+    vi.useFakeTimers()
+    const encoder = new TextEncoder()
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => {
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(encoder.encode([
+            'data: {"choices":[{"delta":{"role":"assistant","content":null,"reasoning_content":""}}]}\n\n',
+            'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c1","type":"function","function":{"name":"write","arguments":""}}]}}]}\n\n',
+          ].join('')))
+          setTimeout(() => {
+            controller.enqueue(encoder.encode([
+              'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\"path\\":\\"n.md\\"}"}}]}}]}\n\n',
+              'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\n',
+              'data: [DONE]\n\n',
+            ].join('')))
+            controller.close()
+          }, 200)
+        },
+      })
+      return Promise.resolve(new Response(body, { status: 200 }))
+    })
+    const adapter = adapterOf({ baseURL: 'https://example.invalid', streamIdleTimeoutMs: 100 })
+    try {
+      const kinds: string[] = []
+      const drain = (async () => {
+        for await (const chunk of adapter.stream({ provider: 'deepseek-official', model: 'm', messages: [] })) {
+          kinds.push(chunk.type)
+        }
+      })()
+      await vi.advanceTimersByTimeAsync(0)
+      await vi.advanceTimersByTimeAsync(200)
+      await expect(drain).resolves.toBeUndefined()
+      expect(kinds).toEqual([
+        'block-start', 'tool-call-delta', 'tool-call-delta', 'block-end', 'finish',
+      ])
+    } finally {
+      fetchSpy.mockRestore()
+    }
+  })
+
   it('aborts the underlying body when a later read stays idle past its watchdog', async () => {
     vi.useFakeTimers()
     let stopped = false

@@ -344,6 +344,23 @@ describe('PiAiAdapter provider routing', () => {
     expect(server.paths).toEqual(['/chat/completions'])
   })
 
+  it('delivers tool-call arguments after the idle interval without timing out', async () => {
+    const server = await mockServer([{
+      events: [
+        '{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c1","type":"function","function":{"name":"write","arguments":""}}]},"index":0,"finish_reason":null}]}',
+        '{"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\"path\\":\\"n.md\\"}"}}]},"index":0,"finish_reason":null}]}',
+        '{"choices":[{"delta":{},"index":0,"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":3,"completion_tokens":1}}',
+        '[DONE]',
+      ],
+      delayAfterFirstMs: 200,
+    }])
+    const ctx = await harness(server.url, { streamIdleTimeoutMs: 20 })
+
+    const result = await assemble(ctx, { model: 'deepseek-v4-flash', messages: [] })
+    expect(result.finish.kind).toBe('tool-calls')
+    expect(server.paths).toEqual(['/chat/completions'])
+  })
+
   it('stops the SDK request when a later read stays idle past the watchdog', async () => {
     const server = await mockServer([{
       events: ['{"choices":[{"delta":{"content":"hello"},"index":0,"finish_reason":null}]}'],

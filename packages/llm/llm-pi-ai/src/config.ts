@@ -156,7 +156,8 @@ export interface PiAiProviderProfile {
   websocketConnectTimeoutMs?: number
   /**
    * Maximum idle interval between outstanding stream reads after the first
-   * content token. Prefill before that token is not capped.
+   * non-empty text, reasoning, or tool-call argument delta. Prefill and a
+   * tool-call header with empty arguments are not capped.
    */
   streamIdleTimeoutMs?: number
   /**
@@ -180,8 +181,8 @@ export interface ResolvedPiAiProviderProfile
   /** Validated credential reference, when one is configured. */
   apiKeyEnv?: CredentialRef
   /**
-   * Positive finite idle interval after the first content token, after
-   * defaulting. Prefill before that token is not capped.
+   * Positive finite idle interval after the first non-empty content delta,
+   * after defaulting. Prefill and empty tool-call headers are not capped.
    */
   streamIdleTimeoutMs: number
   /** Positive request-level base64 image payload bound after defaulting. */

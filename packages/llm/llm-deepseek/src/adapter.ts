@@ -70,7 +70,8 @@ export interface DeepSeekConnectionOptions {
   models: readonly DeepSeekCatalogModel[]
   /**
    * Maximum idle interval between outstanding stream reads after the first
-   * content token. Prefill before that token is not capped.
+   * non-empty text, reasoning, or tool-call argument delta. Prefill and a
+   * tool-call header with empty arguments are not capped.
    */
   streamIdleTimeoutMs: number
   /** Maximum accumulated base64 image payload in one request. */

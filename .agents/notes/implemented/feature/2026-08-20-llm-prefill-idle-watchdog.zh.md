@@ -12,7 +12,7 @@ Status: implemented
 
 `idleWatchdog.next(iterator, { idle?: boolean })` 默认是已计时 demand。`{ idle: false }` 占用 watchdog（并发 `next()` 仍会拒绝）但不布防。`pulse()` 只为**已计时**尚未完成的 demand（`timedOutstanding`）重新布防，因此 prefill 期间的 SSE 注释不会启动空闲间隔。`timeoutMs <= 0` 仍被拒绝；它不是公开的关闭开关。
 
-适配器在 `startsPostTokenIdle(chunk)` 为真之前保持 `idleArmed` 为 false：即 `isTokenDelta`，或 `blockType` 为 `text`、`reasoning`、`tool-call` 的 `block-start`。空 delta 不会启动上限。该分片被 yield 之后，后续 `next()` 按现有 `streamIdleTimeoutMs` 计时。两个适配器都在 yield 之前检查 `timeoutOf`。未计时 prefill 期间的用户或轮次取消仍为 `ABORTED`。
+适配器在 `startsPostTokenIdle(chunk)` 为真之前保持 `idleArmed` 为 false：非空的 `text-delta`、`reasoning-delta`，或 `argumentsDelta` 非空的 `tool-call-delta`。`block-start` 以及只有 name、参数为空的工具调用帧不会启动上限——本地 OpenAI 兼容服务端常常先宣布 `write`（`arguments` 为空），再花很长时间生成正文，然后才出现下一个非空片段。合格分片被 yield 之后，后续 `next()` 按现有 `streamIdleTimeoutMs` 计时。两个适配器都在 yield 之前检查 `timeoutOf`。未计时 prefill 期间的用户或轮次取消仍为 `ABORTED`。
 
 重试退避保持独立：省略策略时的 `maxDelayMs` 由[十秒延迟上限](2026-08-20-llm-retry-max-delay-ten-seconds.md)拥有。watchdog 原语由[超时库](../architecture/2026-07-06-timeout-deadline-library.md)拥有。token 之后的停滞恢复仍在[有界恢复](../architecture/2026-06-21-bounded-llm-request-recovery.md)。
 
@@ -24,12 +24,14 @@ Status: implemented
 
 **把 SSE 注释、HTTP 标头或 TCP keep-alive 当作首 token 存活信号。** 否决：prefill 常常完全没有这些；注释也不得启动 token 之后的计时器。
 
-**把任何 delta（包括空 delta）当作第一个 token。** 否决：空 delta 是心跳和空工具调用帧；`isTokenDelta` 已经排除它们。
+**把任何 delta（包括空 delta）当作第一个 token。** 否决：空的 text/reasoning delta 是心跳；空的工具调用 `argumentsDelta` 是带 name 的头，不是参数正文。
+
+**把工具调用 `block-start` 或带 name 的空 `tool-call-delta` 当作第一个 token。** 否决：提供方在点名该调用时就会发出这个头；随后参数生成可能很久都没有非空 `argumentsDelta`。`isTokenDelta` 仍把带 name 的空工具调用帧当作客户端 TTFT 的首 token；idle 布防不会。
 
 ## 后果
 
-超过五分钟的静默 prefill 不再 idle-TIMEOUT，也不会因此消耗重试预算。挂起的 fetch 会占用该轮，直到取消。第一个内容 token 之后，卡住的正文仍会 idle-TIMEOUT，并且仍可重试。waiting UI 文案延后。
+超过五分钟的静默 prefill 不再 idle-TIMEOUT，也不会因此消耗重试预算。挂起的 fetch 会占用该轮，直到取消。只有 name、参数为空的工具调用头在出现非空 `argumentsDelta` 之前仍不计时。第一个非空内容 delta 之后，卡住的正文仍会 idle-TIMEOUT，并且仍可重试。waiting UI 文案延后。
 
 ## 测试
 
-`packages/util/timeout/tests/timeout.spec.ts` 钉住未计时 `next`、pulse 为空操作、空 options 仍计时、未计时期间拒绝并发，以及构造时拒绝 `timeoutMs <= 0`。`packages/llm/llm/tests/message.spec.ts` 钉住 `startsPostTokenIdle`。DeepSeek 与 pi-ai 适配器测试钉住静默 prefill 中止、延迟首个内容且不 idle TIMEOUT，以及 token 之后停滞 TIMEOUT。DeepSeek 另外钉住 token 之后 SSE 注释 pulse。`packages/llm/llm-retry/tests/transport-recovery.spec.ts` 用 `slow_success`（第一个内容之后再 delay）证明 TIMEOUT 后重试。无密钥 headless `deepseek-defaults` 快照在无 SSE 注释的情况下把第一个内容延迟到超过 `streamIdleTimeoutMs: 150`，并要求只有一次请求且没有 `llm/retry`。
+`packages/util/timeout/tests/timeout.spec.ts` 钉住未计时 `next`、pulse 为空操作、空 options 仍计时、未计时期间拒绝并发，以及构造时拒绝 `timeoutMs <= 0`。`packages/llm/llm/tests/message.spec.ts` 钉住 `startsPostTokenIdle`。DeepSeek 与 pi-ai 适配器测试钉住静默 prefill 中止、延迟首个内容且不 idle TIMEOUT、延迟工具调用参数正文且不 idle TIMEOUT，以及 token 之后停滞 TIMEOUT。DeepSeek 另外钉住 token 之后 SSE 注释 pulse。`packages/llm/llm-retry/tests/transport-recovery.spec.ts` 用 `slow_success`（第一个内容之后再 delay）证明 TIMEOUT 后重试。无密钥 headless `deepseek-defaults` 快照在无 SSE 注释的情况下把第一个内容延迟到超过 `streamIdleTimeoutMs: 150`，并要求只有一次请求且没有 `llm/retry`。
