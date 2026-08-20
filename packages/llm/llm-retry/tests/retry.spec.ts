@@ -395,6 +395,41 @@ describe('provider-routed retry policy', () => {
     expect(rejectedAgent.session.events.some(event => event.type === 'llm/retry')).toBe(false)
   })
 
+  it('honors a default-policy Retry-After at the three-minute cap and delegates above it', async () => {
+    vi.useFakeTimers()
+    const accepted = new ScriptedAdapter([
+      new LlmError('wait', 'RATE_LIMIT', { providerRetryAfterMs: 180_000 }),
+      textResponse('done'),
+    ])
+    ;({ ctx: context } = await harness(accepted, { mock: { mode: 'normal' } }))
+    const acceptedAgent = context.agentLoop.create(SessionId('retry-after-default-cap'), {
+      provider: 'mock',
+      model: 'mock',
+    })
+    const scheduled = waitForRetry(context, acceptedAgent, 1)
+    acceptedAgent.followup(createUserMessage({ content: [{ type: 'text', text: 'go' }], source: { kind: 'user' } }))
+    expect((await scheduled).data.delayMs).toBe(180_000)
+    const acceptedIdle = waitForIdle(context, acceptedAgent)
+    await vi.advanceTimersByTimeAsync(180_000)
+    await acceptedIdle
+    expect(accepted.requests).toHaveLength(2)
+
+    await context.fiber.dispose()
+    const rejected = new ScriptedAdapter([
+      new LlmError('wait too long', 'RATE_LIMIT', { providerRetryAfterMs: 180_001 }),
+    ])
+    ;({ ctx: context } = await harness(rejected, { mock: { mode: 'normal' } }))
+    const rejectedAgent = context.agentLoop.create(SessionId('retry-after-default-over-cap'), {
+      provider: 'mock',
+      model: 'mock',
+    })
+    const rejectedIdle = waitForIdle(context, rejectedAgent)
+    rejectedAgent.followup(createUserMessage({ content: [{ type: 'text', text: 'go' }], source: { kind: 'user' } }))
+    await rejectedIdle
+    expect(rejected.requests).toHaveLength(1)
+    expect(rejectedAgent.session.events.some(event => event.type === 'llm/retry')).toBe(false)
+  })
+
   it('uses local jittered backoff when always mode receives an over-cap Retry-After', async () => {
     vi.useFakeTimers()
     const adapter = new ScriptedAdapter([

@@ -646,7 +646,7 @@ describe('installLlmReplay (through the real LlmRuntime)', () => {
       mode: 'normal',
       maxRetries: 2,
       initialDelayMs: 500,
-      maxDelayMs: 10_000,
+      maxDelayMs: 180_000,
       jitterRatio: 0.1,
     })
     expect(await drain(ctx.llm.stream({ provider: 'deepseek', model: 'pro', messages: [] }))).toEqual(TEXT_CHUNKS)
