@@ -25,7 +25,7 @@ harness LLM（大语言模型）seam 的 DeepSeek chat-completions 适配器：�
       mode: always           # normal | always
       backoff:
         initialDelayMs: 500
-        maxDelayMs: 180000
+        maxDelayMs: 10000
         jitterRatio: 0.1
     defaultContextWindow: 1000000 # optional positive-integer fallback; this is the default
     models:                  # optional; defaults to V4 Flash and V4 Pro

@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-20-llm-retry-max-delay-ten-seconds.md
+2026-08-20-llm-retry-max-delay-ten-seconds.md: 3650b6ad02b60a4fccbfc82c5f4282d7f89eabb7
+2026-08-20-llm-retry-max-delay-ten-seconds.zh.md: 5dcc98bcee0adf4e900fcd8dd881455f6894f022

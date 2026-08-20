@@ -15,7 +15,7 @@ describe('provider retry policy', () => {
       maxRetries: 5,
       retryableCodes: ['EMPTY_RESPONSE', 'RATE_LIMIT', 'SERVER', 'TIMEOUT', 'TRANSPORT'],
       initialDelayMs: 500,
-      maxDelayMs: 180_000,
+      maxDelayMs: 10_000,
       jitterRatio: 0.1,
     })
     expect(Object.isFrozen(policy)).toBe(true)
@@ -53,7 +53,7 @@ describe('provider retry policy', () => {
     expect(resolveRetryPolicy({ mode: 'always' }, 'provider.retryPolicy')).toEqual({
       mode: 'always',
       initialDelayMs: 500,
-      maxDelayMs: 180_000,
+      maxDelayMs: 10_000,
       jitterRatio: 0.1,
     })
     expect(RetryPolicySchema).toBeDefined()
@@ -69,7 +69,7 @@ describe('provider retry policy', () => {
     expect(resolveRetryPolicy(layered, 'provider.retryPolicy')).toEqual({
       mode: 'always',
       initialDelayMs: 500,
-      maxDelayMs: 180_000,
+      maxDelayMs: 10_000,
       jitterRatio: 0.1,
     })
   })

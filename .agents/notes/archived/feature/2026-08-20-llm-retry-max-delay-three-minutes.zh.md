@@ -1,6 +1,7 @@
 # Agent Note: LLM 重试延迟上限为三分钟
 
 Status: implemented
+Archived: 2026-08-20
 
 [English](2026-08-20-llm-retry-max-delay-three-minutes.md) | 中文
 

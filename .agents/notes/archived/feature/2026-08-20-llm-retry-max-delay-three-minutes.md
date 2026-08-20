@@ -1,6 +1,7 @@
 # Agent Note: Three-minute default LLM retry delay cap
 
 Status: implemented
+Archived: 2026-08-20
 
 English | [中文](2026-08-20-llm-retry-max-delay-three-minutes.zh.md)
 

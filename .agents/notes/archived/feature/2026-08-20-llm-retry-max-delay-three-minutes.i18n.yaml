@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-20-llm-retry-max-delay-three-minutes.md
-2026-08-20-llm-retry-max-delay-three-minutes.md: 2fe82c88ee1cabb34b598dcac31882cf60a507e4
-2026-08-20-llm-retry-max-delay-three-minutes.zh.md: 483510aed5635164aeebff62be04581cc889b9bd
+2026-08-20-llm-retry-max-delay-three-minutes.md: 59d1cb7f736cca7badab70061a7b047ccbd06dee
+2026-08-20-llm-retry-max-delay-three-minutes.zh.md: 33df4dbb785a0530bbc03421105d28fceced08f7
