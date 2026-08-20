@@ -1,0 +1,44 @@
+# Translation workflow
+
+## Default target
+- locale: zh-Hant
+- aliases: Traditional Chinese, 繁體中文
+- source: zh (Simplified Chinese UI dictionaries; Chinese-first key set)
+
+## Surfaces
+- in scope: product UI locale dictionaries registered through `ctx.locale.register` (`zh` / `en` / `zh-Hant`)
+- out of scope: documentation pairing (`.md` / `.zh.md` / `.i18n.yaml`), VitePress, AGENTS.md, comments, JSDoc, logging
+
+## Include
+- `packages/**/src/**/locales.ts`
+- `packages/**/src/**/locales/*.ts`
+- inline `ctx.locale.register(...)` dictionary objects in client plugins
+
+## Exclude
+- `*.md`
+- `*.zh.md`
+- `*.i18n.yaml`
+- `docs/**`
+- `website/**`
+- `**/AGENTS.md`
+- comments and JSDoc
+
+## Missing detection
+- Typed `register(ns, dicts)` requires `Record<LocaleId, LocaleDictOf<N>>`; a missing `zh-Hant` seat or missing key is a compile error (`satisfies Record<Key, string>` / `Record<Key, string>`).
+- Untyped namespaces must register a matching `zh-Hant` dictionary in the same effect as `zh` and `en`.
+- After a merge, scan the git range for `locale.register` calls and `export const zh` dictionaries that lack a `zh-Hant` counterpart.
+
+## Process
+- Keep `zh` as the key-set source of truth.
+- Add a complete `zhHant` dictionary next to `zh`/`en` and pass `'zh-Hant': zhHant` in the same typed `register` call.
+- Translate from the Simplified `zh` copy. Do not use runtime OpenCC or treat conversion output as source of truth.
+- Do not add Traditional Chinese documentation or site locales.
+
+## Verify
+- `pnpm exec vitest run` on the owning package's client specs (dictionary occupancy and `setLocale('zh-Hant')` copy)
+- Typecheck of the edited packages (typed `register` / `satisfies`)
+
+## Style
+- comments/JSDoc/logging: English
+- user-facing: zh-Hant
+- terminology: none (align product terms with the Simplified `zh` dictionary)

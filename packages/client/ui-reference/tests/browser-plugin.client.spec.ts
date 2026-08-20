@@ -116,6 +116,28 @@ describe('apply', () => {
   it('the node half applies without host-side behavior', () => {
     expect(() => { nodeApply() }).not.toThrow()
   })
+
+  it('occupies the zh-Hant seat and labels the menu in Traditional Chinese', async () => {
+    const { ctx, fiber, source } = await bench()
+    const locale = ctx.get('locale') as LocaleRuntime
+    locale.setLocale('zh-Hant')
+    await expect(source.candidates(session, request('re'))).resolves.toEqual([
+      expect.objectContaining({
+        name: '資料夾 · src/',
+        section: '檔案與資料夾',
+      }),
+      expect.objectContaining({
+        name: '檔案 · a b.md',
+        section: '檔案與資料夾',
+      }),
+      expect.objectContaining({
+        name: 'Session · Research',
+        section: 'Session 對話',
+      }),
+    ])
+    await fiber.dispose()
+    expect(() => locale.register('reference', 'zh-Hant', {})).not.toThrow()
+  })
 })
 
 describe('candidates', () => {

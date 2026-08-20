@@ -25,6 +25,16 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   }
 }
 
+/** Traditional Chinese dictionary, checked complete against the zh key set. */
+export const zhHant = {
+  'section.files': '檔案與資料夾',
+  'section.sessions': 'Session 對話',
+  'candidate.file': '檔案',
+  'candidate.folder': '資料夾',
+  'candidate.session': 'Session',
+  'candidate.noCwd': '（無工作目錄）',
+} satisfies Record<ReferenceKey, string>
+
 /** English dictionary, checked complete against the zh key set. */
 export const en = {
   'section.files': 'Files & folders',
