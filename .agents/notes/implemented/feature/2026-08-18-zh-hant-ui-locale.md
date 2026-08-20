@@ -10,7 +10,7 @@ The browser client shipped only Simplified Chinese `zh` and English `en`. `detec
 
 ## Decision
 
-**The browser client ships three LocaleIds: `zh`, `en`, and `zh-Hant`.** Language-row labels are 简体中文 / 繁體中文 / English. `FALLBACK_LOCALE` stays `zh`. An explicit Host `locale.preference` still replaces the provisional value live and is never written from detection; see [browser-derived initial locale](2026-07-31-browser-derived-initial-locale.md).
+**The browser client ships three LocaleIds: `zh`, `en`, and `zh-Hant`.** Language-row labels are 简体中文 / 繁體中文 / English. `FALLBACK_LOCALE` stays `en`, owned by the [browser-derived initial locale](2026-07-31-browser-derived-initial-locale.md) decision. An explicit Host `locale.preference` still replaces the provisional value live and is never written from detection.
 
 **Detection walks `navigator.languages` then `navigator.language`; the first match wins.** English still matches on the primary subtag (`en-GB` → `en`). Chinese matches script before region: a `hans` subtag → `zh` (including `zh-Hans-TW`); otherwise `hant` or region `tw`/`hk` → `zh-Hant`; remaining `zh*` (bare `zh`, `zh-CN`, unnamed `zh-MO`) → `zh`. Unshipped languages such as `fr` still yield nothing and leave `FALLBACK_LOCALE` in charge. `window` remains the browser test.
 
@@ -24,7 +24,7 @@ The browser client shipped only Simplified Chinese `zh` and English `en`. `detec
 
 **Keep LocaleId as `zh | en` and register `zh-Hant` only through the untyped `register(ns, locale, dict)` form.** Rejected because `LOCALES`, `setLocale`, and the Host settings schema only accept shipped LocaleIds; an untyped third dictionary would not appear in the Language row and would not persist as `preference`.
 
-**Ship `zh-Hant` dictionaries incrementally and fall back missing keys to Simplified.** Rejected because lookup already falls back to `zh`, and a mixed-script UI after the user chose Traditional would violate the completeness the typed `Record<LocaleId, dict>` registration exists to enforce.
+**Ship `zh-Hant` dictionaries incrementally and fall back missing keys to Simplified.** Rejected because lookup already falls back to `en`, and a mixed-language UI after the user chose Traditional would violate the completeness the typed `Record<LocaleId, dict>` registration exists to enforce.
 
 ## Consequences
 

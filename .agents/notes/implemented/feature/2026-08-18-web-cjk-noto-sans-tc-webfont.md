@@ -24,7 +24,7 @@ English | [中文](2026-08-18-web-cjk-noto-sans-tc-webfont.zh.md)
 
 ## Consequences
 
-Windows and Linux download about 1 MB woff2 per used weight (400 for body, 500/600/700 when those weights paint). macOS with PingFang TC does not fetch Noto. Linux CI aria goldens still do not pin `font-family`; any future pixel snapshot must expect Noto metrics. The OFL face is disclosed through the generated third-party notices from the ui-theme dependency. `OFL-1.1` is on that generator's permissive SPDX set so an open face can ship as a webfont without a per-package identity exception; see [generated third-party notices](../process/2026-07-30-generated-third-party-notices.md). The web Vite config aliases `@deepseek-ai/dsh-client-ui-theme/styles/*` onto `ui-theme/src/styles` so `url('@fontsource/...')` is rewritten into hashed `assets/fonts/` files; the package export remains `lib/styles` for Node consumers.
+Windows and Linux download about 1 MB woff2 per used weight (400 for body, 500/600/700 when those weights paint). macOS with PingFang TC does not fetch Noto. Linux CI aria goldens still do not pin `font-family`; any future pixel snapshot must expect Noto metrics. The OFL face is disclosed through the generated third-party notices from the `@deepseek-ai/dsh-client-web` dependency. `OFL-1.1` is on that generator's permissive SPDX set so an open face can ship as a webfont without a per-package identity exception; see [generated third-party notices](../process/2026-07-30-generated-third-party-notices.md). Faces live in `packages/client/web/src/cjk-faces.css` so the Vite shell build can rewrite `url('@fontsource/...')` into hashed `assets/fonts/` files; plugin-inlined ui-theme CSS cannot emit those assets because `/plugins` serves only `client.js`.
 
 ## Testing
 

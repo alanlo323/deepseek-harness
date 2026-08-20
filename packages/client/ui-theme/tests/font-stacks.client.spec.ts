@@ -6,17 +6,20 @@
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { join } from 'node:path'
+import { join, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
-const require = createRequire(fileURLToPath(new URL('../src/styles/base.css', import.meta.url)))
+const require = createRequire(fileURLToPath(new URL('../../web/package.json', import.meta.url)))
 const STYLES = new URL('../src/styles/', import.meta.url)
+const CJK_FACES = fileURLToPath(new URL('../../web/src/cjk-faces.css', import.meta.url))
 const PACKAGES_DIR = fileURLToPath(new URL('../../../', import.meta.url))
+const WEB_SHELL_DIR = fileURLToPath(new URL('../../web', import.meta.url))
 const TRAJECTORY_TYPEFACE = fileURLToPath(
   new URL('../../ui-trajectory/src/client/TrajectoryTable.module.css', import.meta.url),
 )
 const baseCss = readFileSync(fileURLToPath(new URL('base.css', STYLES)), 'utf8')
+const facesCss = readFileSync(CJK_FACES, 'utf8')
 
 /** Fontsource Traditional subset woff2 files DshCjk lists, one per UI weight. */
 const NOTO_TRADITIONAL_WOFF2 = [
@@ -102,8 +105,9 @@ function rootProperties(css: string): Map<string, string> {
 }
 
 /**
- * Every CSS file shipped as package source, excluding build output and
- * installed dependencies.
+ * Every CSS file shipped as package source, excluding build output,
+ * installed dependencies, and the pre-plugin web shell (its fallback stack
+ * may name system Simplified families until ui-theme tokens arrive).
  * @returns absolute paths of the stylesheets under packages/.
  */
 function packageStylesheets(): string[] {
@@ -112,7 +116,11 @@ function packageStylesheets(): string[] {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const path = join(dir, entry.name)
       if (entry.isDirectory()) {
-        if (entry.name !== 'node_modules' && entry.name !== 'lib' && entry.name !== 'dist') walk(path)
+        if (entry.name === 'node_modules' || entry.name === 'lib' || entry.name === 'dist') continue
+        // Pre-plugin shell CSS may name system Simplified families until ui-theme
+        // tokens arrive; DshCjk ownership starts at the theme sheets.
+        if (path === WEB_SHELL_DIR || path.startsWith(`${WEB_SHELL_DIR}${sep}`)) continue
+        walk(path)
       } else if (entry.name.endsWith('.css')) found.push(path)
     }
   }
@@ -123,7 +131,7 @@ function packageStylesheets(): string[] {
 const root = rootProperties(baseCss)
 const uiStack = root.get('--dsw-font-family') ?? ''
 const codeStack = root.get('--ds-font-family-code') ?? ''
-const dshCjkFaces = fontFaces(baseCss).filter(face => face.family === "'DshCjk'")
+const dshCjkFaces = fontFaces(facesCss).filter(face => face.family === "'DshCjk'")
 
 describe('theme CJK font stack', () => {
   it('puts DshCjk before system-ui in the UI stack and before mono Latin in the code stack', () => {

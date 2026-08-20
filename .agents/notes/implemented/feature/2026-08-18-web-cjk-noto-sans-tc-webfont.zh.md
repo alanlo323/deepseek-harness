@@ -24,7 +24,7 @@ Status: implemented
 
 ## Consequences
 
-Windows 与 Linux 每个实际用到的字重大约下载 1 MB woff2（正文 400，用到 500/600/700 再拉）。装有 PingFang TC 的 macOS 不会拉取 Noto。Linux CI 的 aria 金标仍不钉 `font-family`；若以后有像素快照，必须按 Noto 度量来预期。OFL 字型通过 ui-theme 依赖进入生成的第三方声明。该生成器的宽松 SPDX 集合包含 `OFL-1.1`，因此开源字型可作为 webfont 交付，而无需按包身份例外；见[生成的第三方声明](../process/2026-07-30-generated-third-party-notices.md)。web 的 Vite 配置把 `@deepseek-ai/dsh-client-ui-theme/styles/*` 别名到 `ui-theme/src/styles`，以便 `url('@fontsource/...')` 被改写成带哈希的 `assets/fonts/` 文件；包导出仍是给 Node 消费方用的 `lib/styles`。
+Windows 与 Linux 每个实际用到的字重大约下载 1 MB woff2（正文 400，用到 500/600/700 再拉）。装有 PingFang TC 的 macOS 不会拉取 Noto。Linux CI 的 aria 金标仍不钉 `font-family`；若以后有像素快照，必须按 Noto 度量来预期。OFL 字型通过 `@deepseek-ai/dsh-client-web` 依赖进入生成的第三方声明。该生成器的宽松 SPDX 集合包含 `OFL-1.1`，因此开源字型可作为 webfont 交付，而无需按包身份例外；见[生成的第三方声明](../process/2026-07-30-generated-third-party-notices.md)。faces 写在 `packages/client/web/src/cjk-faces.css`，以便 Vite 壳层构建把 `url('@fontsource/...')` 改写成带哈希的 `assets/fonts/` 文件；插件内联的 ui-theme CSS 无法发出这些资源，因为 `/plugins` 只提供 `client.js`。
 
 ## Testing
 

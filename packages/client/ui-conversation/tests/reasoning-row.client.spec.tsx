@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
-import { AssistantMarkdown } from '../src/client/chat/AssistantMarkdown.tsx'
+import { AssistantMarkdown, type AssistantMarkdownProps } from '../src/client/chat/AssistantMarkdown.tsx'
 import { PARAGRAPH_ADVANCE_MS } from '../src/client/chat/ReasoningRow.tsx'
 import { zh } from '../src/client/locales.ts'
 
@@ -56,6 +56,7 @@ afterEach(() => {
 })
 
 const t = makeTranslate(zh, commonZh)
+const renderMessageImages: AssistantMarkdownProps['renderMessageImages'] = () => null
 
 function overflowMetrics(element: HTMLElement): void {
   Object.defineProperties(element, {
@@ -70,6 +71,7 @@ function reasoning(text: string, streaming = true) {
       t={t}
       blocks={[{ kind: 'reasoning', text }]}
       streaming={streaming}
+      renderMessageImages={renderMessageImages}
     />
   )
 }
@@ -156,6 +158,7 @@ describe('ReasoningRow', () => {
         previewMode="follow-end"
         blocks={[{ kind: 'reasoning', text: 'Inspect the session\nNewest reasoning tokens' }]}
         streaming
+        renderMessageImages={renderMessageImages}
       />,
     )
     const summary = view.getByText('Newest reasoning tokens')
@@ -167,6 +170,7 @@ describe('ReasoningRow', () => {
         previewMode="follow-end"
         blocks={[{ kind: 'reasoning', text: 'Inspect the session\nNewest reasoning tokens keep arriving' }]}
         streaming
+        renderMessageImages={renderMessageImages}
       />,
     )
     expect(summary.scrollLeft).toBe(0)
@@ -182,6 +186,7 @@ describe('ReasoningRow', () => {
         previewMode="follow-end"
         blocks={[{ kind: 'reasoning', text: 'Inspect the session\nNewest reasoning tokens keep arriving\n' }]}
         streaming={false}
+        renderMessageImages={renderMessageImages}
       />,
     )
     const settled = view.getByText(/Newest reasoning tokens keep arriving/)

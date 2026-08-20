@@ -1,0 +1,66 @@
+/* DshCjk faces compile through the Vite shell: plugin-inlined theme CSS cannot
+ * emit hashed font assets (/plugins serves only client.js). Family tokens stay
+ * on ui-theme. local() PingFang TC / Heiti TC win when installed; otherwise
+ * the Noto Sans TC Traditional subset webfont loads. JhengHei is last resort.
+ * Do not bundle PingFang. */
+@font-face {
+  font-family: 'DshCjk';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: local('PingFang TC'), local('PingFangTC-Regular'), local('蘋方-繁'),
+    local('Heiti TC'),
+    url('@fontsource/noto-sans-tc/files/noto-sans-tc-chinese-traditional-400-normal.woff2')
+      format('woff2'),
+    local('Microsoft JhengHei UI'), local('Microsoft JhengHei'), local('微軟正黑體');
+  unicode-range: U+2E80-2EFF, U+2F00-2FDF, U+3000-303F, U+3100-312F, U+31A0-31BF,
+    U+31C0-31EF, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FE10-FE1F, U+FE30-FE4F,
+    U+FF00-FFEF, U+20000-2FA1F;
+}
+
+@font-face {
+  font-family: 'DshCjk';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: local('PingFang TC Medium'), local('PingFangTC-Medium'),
+    local('PingFang TC'), local('蘋方-繁'), local('Heiti TC'),
+    url('@fontsource/noto-sans-tc/files/noto-sans-tc-chinese-traditional-500-normal.woff2')
+      format('woff2'),
+    local('Microsoft JhengHei UI'), local('Microsoft JhengHei'), local('微軟正黑體');
+  unicode-range: U+2E80-2EFF, U+2F00-2FDF, U+3000-303F, U+3100-312F, U+31A0-31BF,
+    U+31C0-31EF, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FE10-FE1F, U+FE30-FE4F,
+    U+FF00-FFEF, U+20000-2FA1F;
+}
+
+@font-face {
+  font-family: 'DshCjk';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: local('PingFang TC Semibold'), local('PingFangTC-Semibold'),
+    local('PingFang TC'), local('蘋方-繁'), local('Heiti TC'),
+    url('@fontsource/noto-sans-tc/files/noto-sans-tc-chinese-traditional-600-normal.woff2')
+      format('woff2'),
+    local('Microsoft JhengHei Bold'), local('Microsoft JhengHei UI Bold'),
+    local('Microsoft JhengHei'), local('微軟正黑體');
+  unicode-range: U+2E80-2EFF, U+2F00-2FDF, U+3000-303F, U+3100-312F, U+31A0-31BF,
+    U+31C0-31EF, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FE10-FE1F, U+FE30-FE4F,
+    U+FF00-FFEF, U+20000-2FA1F;
+}
+
+@font-face {
+  font-family: 'DshCjk';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: local('PingFang TC Semibold'), local('PingFangTC-Semibold'),
+    local('PingFang TC'), local('蘋方-繁'), local('Heiti TC'),
+    url('@fontsource/noto-sans-tc/files/noto-sans-tc-chinese-traditional-700-normal.woff2')
+      format('woff2'),
+    local('Microsoft JhengHei Bold'), local('Microsoft JhengHei UI Bold'),
+    local('Microsoft JhengHei'), local('微軟正黑體');
+  unicode-range: U+2E80-2EFF, U+2F00-2FDF, U+3000-303F, U+3100-312F, U+31A0-31BF,
+    U+31C0-31EF, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FE10-FE1F, U+FE30-FE4F,
+    U+FF00-FFEF, U+20000-2FA1F;
+}
