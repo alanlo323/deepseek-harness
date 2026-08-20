@@ -335,8 +335,20 @@ describe('PiAiAdapter provider routing', () => {
     })
   })
 
-  it('stops the SDK request when the adapter idle watchdog expires', async () => {
-    const server = await mockServer([{ events: textEvents, delayMs: 200 }])
+  it('delivers first content after the idle interval without timing out', async () => {
+    const server = await mockServer([{ events: textEvents, initialDelayMs: 200 }])
+    const ctx = await harness(server.url, { streamIdleTimeoutMs: 20 })
+
+    const result = await assemble(ctx, { model: 'deepseek-v4-flash', messages: [] })
+    expect(result.finish.kind).toBe('stop')
+    expect(server.paths).toEqual(['/chat/completions'])
+  })
+
+  it('stops the SDK request when a later read stays idle past the watchdog', async () => {
+    const server = await mockServer([{
+      events: ['{"choices":[{"delta":{"content":"hello"},"index":0,"finish_reason":null}]}'],
+      holdOpen: true,
+    }])
     const ctx = await harness(server.url, { streamIdleTimeoutMs: 20 })
 
     const result = await assemble(ctx, { model: 'deepseek-v4-flash', messages: [] })
@@ -350,6 +362,19 @@ describe('PiAiAdapter provider routing', () => {
 
     expect(server.paths).toEqual(['/chat/completions'])
     expect(server.closedResponses).toBe(1)
+  })
+
+  it('classifies abort during silent prefill as ABORTED after the idle interval', async () => {
+    const server = await mockServer([{ events: [], holdOpen: true }])
+    const ctx = await harness(server.url, { streamIdleTimeoutMs: 20 })
+    const controller = new AbortController()
+    const resultPromise = assemble(ctx, {
+      model: 'deepseek-v4-flash', messages: [], signal: controller.signal,
+    })
+    await new Promise(resolve => setTimeout(resolve, 50))
+    controller.abort('stopped during prefill')
+    const result = await resultPromise
+    expect(result.finish).toMatchObject({ kind: 'aborted', failure: { code: 'ABORTED' } })
   })
 })
 

@@ -6,6 +6,7 @@ import {
   createUserMessage,
   freezeMessage,
   MessageId,
+  startsPostTokenIdle,
 } from '@deepseek-ai/dsh-llm'
 
 describe('message construction', () => {
@@ -95,5 +96,48 @@ describe('message construction', () => {
     expect(message.id).not.toHaveLength(0)
     expect(Object.isFrozen(message)).toBe(true)
     expect(Object.isFrozen(message.content[0])).toBe(true)
+  })
+})
+
+describe('startsPostTokenIdle', () => {
+  it('ignores empty deltas, usage, finish, and block-end', () => {
+    expect(startsPostTokenIdle({ type: 'text-delta', index: 0, text: '' })).toBe(false)
+    expect(startsPostTokenIdle({ type: 'reasoning-delta', index: 0, text: '' })).toBe(false)
+    expect(startsPostTokenIdle({
+      type: 'tool-call-delta',
+      index: 0,
+      id: CallId('c1'),
+      argumentsDelta: '',
+    })).toBe(false)
+    expect(startsPostTokenIdle({
+      type: 'usage',
+      usage: { inputTokens: 1, outputTokens: 1 },
+    })).toBe(false)
+    expect(startsPostTokenIdle({ type: 'finish', reason: { kind: 'stop' } })).toBe(false)
+    expect(startsPostTokenIdle({
+      type: 'block-end',
+      index: 0,
+      block: { type: 'text', text: 'hello' },
+    })).toBe(false)
+  })
+
+  it('starts after a non-empty delta or a content block-start', () => {
+    expect(startsPostTokenIdle({ type: 'text-delta', index: 0, text: 'h' })).toBe(true)
+    expect(startsPostTokenIdle({ type: 'reasoning-delta', index: 0, text: 'r' })).toBe(true)
+    expect(startsPostTokenIdle({
+      type: 'tool-call-delta',
+      index: 0,
+      id: CallId('c1'),
+      name: 'echo',
+      argumentsDelta: '',
+    })).toBe(true)
+    expect(startsPostTokenIdle({ type: 'block-start', index: 0, blockType: 'text' })).toBe(true)
+    expect(startsPostTokenIdle({ type: 'block-start', index: 0, blockType: 'reasoning' })).toBe(true)
+    expect(startsPostTokenIdle({ type: 'block-start', index: 0, blockType: 'tool-call' })).toBe(true)
+  })
+
+  it('ignores non-content block-start types', () => {
+    expect(startsPostTokenIdle({ type: 'block-start', index: 0, blockType: 'image' })).toBe(false)
+    expect(startsPostTokenIdle({ type: 'block-start', index: 0, blockType: 'tool-result' })).toBe(false)
   })
 })

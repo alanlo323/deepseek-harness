@@ -86,13 +86,7 @@ async function deepseekDefaultsServer(): Promise<DeepSeekDefaultsServer> {
     request.on('end', () => {
       requests.push(JSON.parse(body) as JsonObject)
       response.writeHead(200, { 'content-type': 'text/event-stream' })
-      let keepAlives = 3
       const write = (): void => {
-        if (keepAlives-- > 0) {
-          response.write(': keep-alive\n\n')
-          setTimeout(write, 60)
-          return
-        }
         response.end([
           'data: {"choices":[{"delta":{"content":"DEFAULTS_OK"}}]}',
           'data: {"choices":[{"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":3,"completion_tokens":1}}',
@@ -100,7 +94,7 @@ async function deepseekDefaultsServer(): Promise<DeepSeekDefaultsServer> {
           '',
         ].join('\n\n'))
       }
-      setTimeout(write, 60)
+      setTimeout(write, 300)
     })
   })
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
@@ -516,7 +510,7 @@ describe('headless stream-json snapshots', () => {
     `)
   }, LOADER_SMOKE_TEST_TIMEOUT_MS)
 
-  it('keeps provider comments alive and sends DeepSeek defaults through the one-shot app', async () => {
+  it('waits through delayed first DeepSeek content without idle timeout and sends adapter defaults', async () => {
     const server = await deepseekDefaultsServer()
     try {
       const result = await runLoaderSmoke({
@@ -540,6 +534,15 @@ describe('headless stream-json snapshots', () => {
       })
 
       expect(result.stderr).toBe('')
+      expect(result.stdout).toContain('DEFAULTS_OK')
+      expect(parseJsonl(result.stdout).some((record) => {
+        const event = record.event
+        return event !== null
+          && typeof event === 'object'
+          && !Array.isArray(event)
+          && 'type' in event
+          && event.type === 'llm/retry'
+      })).toBe(false)
       expect(server.requests).toHaveLength(1)
       expect(server.requests[0]?.max_tokens).toBe(256_000)
       expect(server.requests[0]?.reasoning_effort).toBe('low')

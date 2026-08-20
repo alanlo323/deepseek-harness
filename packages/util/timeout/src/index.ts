@@ -67,12 +67,19 @@ export interface IdleWatchdog {
   /** Stable signal aborted by upstream cancellation or this watchdog's timeout. */
   readonly signal: AbortSignal
   /**
-   * Await one iterator demand while the idle timer is armed.
+   * Await one iterator demand. When `idle` is true (the default), the idle
+   * timer is armed for this demand. When `idle` is false, the demand still
+   * occupies the watchdog (concurrent `next()` still rejects) but does not
+   * arm, and {@link pulse} stays a no-op until a later timed demand.
    * @param iterator - iterator whose next value represents provider progress.
+   * @param options - `{ idle: false }` skips the idle timer for this demand.
    * @returns the iterator's next result.
    */
-  next<T>(iterator: AsyncIterator<T>): Promise<IteratorResult<T>>
-  /** Rearm an outstanding demand after transport activity that yields no iterator value; otherwise a no-op. */
+  next<T>(iterator: AsyncIterator<T>, options?: { idle?: boolean }): Promise<IteratorResult<T>>
+  /**
+   * Rearm an outstanding **timed** demand after transport activity that yields
+   * no iterator value; otherwise a no-op.
+   */
   pulse(): void
   /** Clear an armed timer; safe to call once at the owning stream's exit. */
   [Symbol.dispose](): void
@@ -114,9 +121,11 @@ export function deadline(
 
 /**
  * Create a rearmable idle watchdog for an async iterator. The timer exists only
- * while {@link IdleWatchdog.next} is outstanding, so consumer think time does
- * not count as provider idle time. The returned signal is stable for the whole
- * call and only notifies; the iterator must observe it to terminate its work.
+ * while a timed {@link IdleWatchdog.next} is outstanding, so consumer think
+ * time and untimed prefill waits do not count as provider idle time. The
+ * returned signal is stable for the whole call and only notifies; the iterator
+ * must observe it to terminate its work. `timeoutMs <= 0` is rejected; it is
+ * not a public disable switch.
  *
  * @param upstream - caller cancellation fused into the stable signal.
  * @param timeoutMs - positive finite idle interval in milliseconds.
@@ -135,6 +144,7 @@ export function idleWatchdog(
     : AbortSignal.any([upstream, timeout.signal])
   let timer: ReturnType<typeof setTimeout> | undefined
   let outstanding = false
+  let timedOutstanding = false
   let disposed = false
 
   const arm = (): void => {
@@ -146,21 +156,27 @@ export function idleWatchdog(
 
   return {
     signal,
-    async next<T>(iterator: AsyncIterator<T>): Promise<IteratorResult<T>> {
+    async next<T>(
+      iterator: AsyncIterator<T>,
+      options: { idle?: boolean } = {},
+    ): Promise<IteratorResult<T>> {
+      const { idle = true } = options
       if (disposed) throw new Error('idleWatchdog is disposed')
       if (outstanding) throw new Error('idleWatchdog next is already outstanding')
       outstanding = true
-      arm()
+      timedOutstanding = idle
+      if (idle) arm()
       try {
         return await iterator.next()
       } finally {
         clearTimeout(timer)
         timer = undefined
         outstanding = false
+        timedOutstanding = false
       }
     },
     pulse(): void {
-      if (disposed || !outstanding) return
+      if (disposed || !timedOutstanding) return
       arm()
     },
     [Symbol.dispose](): void {

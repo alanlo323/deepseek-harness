@@ -259,3 +259,15 @@ export function isTokenDelta(chunk: StreamChunk): boolean {
       return false
   }
 }
+
+/**
+ * Whether a stream chunk starts the post-token idle interval. Empty deltas do
+ * not; a content `block-start` does, even before a non-empty delta.
+ * @param chunk - the stream chunk to test.
+ * @returns true when idle-watchdog arming should begin after this chunk.
+ */
+export function startsPostTokenIdle(chunk: StreamChunk): boolean {
+  if (isTokenDelta(chunk)) return true
+  return chunk.type === 'block-start'
+    && (chunk.blockType === 'text' || chunk.blockType === 'reasoning' || chunk.blockType === 'tool-call')
+}

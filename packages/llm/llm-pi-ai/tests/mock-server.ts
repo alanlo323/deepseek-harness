@@ -31,6 +31,8 @@ export async function mockServer(script: {
   events?: string[]
   body?: string
   delayMs?: number
+  initialDelayMs?: number
+  holdOpen?: boolean
   headers?: Record<string, string>
 }[]): Promise<MockServer> {
   const paths: string[] = []
@@ -59,12 +61,16 @@ export async function mockServer(script: {
       let index = 0
       const writeNext = (): void => {
         const event = behavior.events?.[index++]
-        if (event === undefined) { response.end(); return }
+        if (event === undefined) {
+          if (behavior.holdOpen !== true) response.end()
+          return
+        }
         response.write(`data: ${event}\n\n`)
         if (behavior.delayMs === undefined) writeNext()
         else setTimeout(writeNext, behavior.delayMs)
       }
-      writeNext()
+      if (behavior.initialDelayMs === undefined) writeNext()
+      else setTimeout(writeNext, behavior.initialDelayMs)
     })
   })
   servers.push(server)

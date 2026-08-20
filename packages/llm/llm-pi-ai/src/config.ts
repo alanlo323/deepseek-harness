@@ -39,7 +39,7 @@ import type {
 } from './catalog.ts'
 import { buildProvider, supportedProtocols } from './provider.ts'
 
-/** Default maximum idle interval while an adapter stream read is outstanding. */
+/** Default maximum idle interval after the first content token. */
 export const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 300_000
 
 /**
@@ -154,7 +154,10 @@ export interface PiAiProviderProfile {
   timeoutMs?: number
   /** WebSocket connection timeout in milliseconds. */
   websocketConnectTimeoutMs?: number
-  /** Maximum provider idle time while one stream read is outstanding. */
+  /**
+   * Maximum idle interval between outstanding stream reads after the first
+   * content token. Prefill before that token is not capped.
+   */
   streamIdleTimeoutMs?: number
   /**
    * Maximum base64-encoded image payload per request. When a request's
@@ -176,7 +179,10 @@ export interface ResolvedPiAiProviderProfile
   displayName: string
   /** Validated credential reference, when one is configured. */
   apiKeyEnv?: CredentialRef
-  /** Positive finite provider-idle interval after defaulting. */
+  /**
+   * Positive finite idle interval after the first content token, after
+   * defaulting. Prefill before that token is not capped.
+   */
   streamIdleTimeoutMs: number
   /** Positive request-level base64 image payload bound after defaulting. */
   maxRequestImageBytes: number

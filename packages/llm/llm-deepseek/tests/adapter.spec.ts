@@ -643,13 +643,82 @@ describe('DeepSeekAdapter against a mock server', () => {
     }
   })
 
-  it('aborts the underlying body when the stream stays idle past its watchdog', async () => {
+  it('does not idle-timeout silent prefill and classifies a later caller abort as ABORTED', async () => {
     vi.useFakeTimers()
     let stopped = false
+    const controller = new AbortController()
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((_input, init) => {
+      const signal = init?.signal
+      const body = new ReadableStream<Uint8Array>({
+        start(stream) {
+          signal?.addEventListener('abort', () => {
+            stopped = true
+            stream.error(signal.reason)
+          }, { once: true })
+        },
+      })
+      return Promise.resolve(new Response(body, { status: 200 }))
+    })
+    const adapter = adapterOf({ baseURL: 'https://example.invalid', streamIdleTimeoutMs: 100 })
+    try {
+      const drain = (async () => {
+        for await (const _chunk of adapter.stream({
+          provider: 'deepseek-official',
+          model: 'm',
+          messages: [],
+          signal: controller.signal,
+        })) { /* drain */ }
+      })()
+      await vi.advanceTimersByTimeAsync(0)
+      await vi.advanceTimersByTimeAsync(200)
+      expect(stopped).toBe(false)
+      controller.abort('caller cancelled')
+      await expect(drain).rejects.toMatchObject({ code: 'ABORTED' })
+      expect(stopped).toBe(true)
+    } finally {
+      fetchSpy.mockRestore()
+    }
+  })
+
+  it('delivers first content after the idle interval without SSE comments', async () => {
+    vi.useFakeTimers()
+    const encoder = new TextEncoder()
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => {
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          setTimeout(() => {
+            controller.enqueue(encoder.encode(textEvents.map(event => `data: ${event}\n\n`).join('')))
+            controller.close()
+          }, 200)
+        },
+      })
+      return Promise.resolve(new Response(body, { status: 200 }))
+    })
+    const adapter = adapterOf({ baseURL: 'https://example.invalid', streamIdleTimeoutMs: 100 })
+    try {
+      const chunks: string[] = []
+      const drain = (async () => {
+        for await (const chunk of adapter.stream({ provider: 'deepseek-official', model: 'm', messages: [] })) {
+          chunks.push(chunk.type)
+        }
+      })()
+      await vi.advanceTimersByTimeAsync(200)
+      await expect(drain).resolves.toBeUndefined()
+      expect(chunks).toEqual(['block-start', 'text-delta', 'block-end', 'usage', 'finish'])
+    } finally {
+      fetchSpy.mockRestore()
+    }
+  })
+
+  it('aborts the underlying body when a later read stays idle past its watchdog', async () => {
+    vi.useFakeTimers()
+    let stopped = false
+    const encoder = new TextEncoder()
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((_input, init) => {
       const signal = init?.signal
       const body = new ReadableStream<Uint8Array>({
         start(controller) {
+          controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"hello"}}]}\n\n'))
           signal?.addEventListener('abort', () => {
             stopped = true
             controller.error(signal.reason)
@@ -673,16 +742,54 @@ describe('DeepSeekAdapter against a mock server', () => {
     }
   })
 
-  it('keeps an idle provider read alive through SSE comments', async () => {
+  it('throws TIMEOUT before yielding a chunk that arrives after idle expiry', async () => {
     vi.useFakeTimers()
     const encoder = new TextEncoder()
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => {
       const body = new ReadableStream<Uint8Array>({
         start(controller) {
+          controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"hello"}}]}\n\n'))
+          setTimeout(() => {
+            controller.enqueue(encoder.encode(textEvents.slice(1).map(event => `data: ${event}\n\n`).join('')))
+            controller.close()
+          }, 150)
+        },
+      })
+      return Promise.resolve(new Response(body, { status: 200 }))
+    })
+    const adapter = adapterOf({ baseURL: 'https://example.invalid', streamIdleTimeoutMs: 100 })
+    try {
+      const chunks: string[] = []
+      const drain = (async () => {
+        for await (const chunk of adapter.stream({ provider: 'deepseek-official', model: 'm', messages: [] })) {
+          chunks.push(chunk.type)
+        }
+      })()
+      const rejected = expect(drain).rejects.toMatchObject({ code: 'TIMEOUT' })
+      await vi.advanceTimersByTimeAsync(0)
+      await vi.advanceTimersByTimeAsync(150)
+      await rejected
+      expect(chunks).toEqual(['block-start', 'text-delta'])
+    } finally {
+      fetchSpy.mockRestore()
+    }
+  })
+
+  it('keeps a post-token provider read alive through SSE comments', async () => {
+    vi.useFakeTimers()
+    const encoder = new TextEncoder()
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => {
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"hello"}}]}\n\n'))
           setTimeout(() => { controller.enqueue(encoder.encode(': keep-alive\n\n')) }, 75)
           setTimeout(() => { controller.enqueue(encoder.encode(': keep-alive\n\n')) }, 150)
           setTimeout(() => {
-            controller.enqueue(encoder.encode(textEvents.map(event => `data: ${event}\n\n`).join('')))
+            controller.enqueue(encoder.encode([
+              'data: {"choices":[{"delta":{"content":""},"finish_reason":"stop"}],"usage":{"prompt_tokens":3,"completion_tokens":1}}',
+              'data: [DONE]',
+              '',
+            ].join('\n\n')))
             controller.close()
           }, 225)
         },

@@ -8,7 +8,7 @@
  * @module dsh-llm-deepseek/adapter
  */
 
-import { attributionHeaders, contentHasImage, CONTEXT_WINDOW_EXCEEDED_CODE, isContextWindowExceededError, isQuotaExceededError, LlmAdapter, LlmError, ProviderRequestId, QUOTA_EXCEEDED_CODE, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
+import { attributionHeaders, contentHasImage, CONTEXT_WINDOW_EXCEEDED_CODE, isContextWindowExceededError, isQuotaExceededError, LlmAdapter, LlmError, ProviderRequestId, QUOTA_EXCEEDED_CODE, ReasoningEffortId, startsPostTokenIdle } from '@deepseek-ai/dsh-llm'
 import type {
   GenerateOptions,
   LlmModelInfo,
@@ -68,7 +68,10 @@ export interface DeepSeekConnectionOptions {
   defaultContextWindow: number
   /** Advisory models exposed to discovery consumers; requests remain unrestricted. */
   models: readonly DeepSeekCatalogModel[]
-  /** Maximum provider idle time while one stream read is outstanding. */
+  /**
+   * Maximum idle interval between outstanding stream reads after the first
+   * content token. Prefill before that token is not capped.
+   */
   streamIdleTimeoutMs: number
   /** Maximum accumulated base64 image payload in one request. */
   maxRequestImageBytes: number
@@ -93,7 +96,7 @@ export interface DeepSeekAdapterOptions {
   resolveAttachments?: () => AttachmentStore | undefined
 }
 
-/** Default maximum idle interval while an adapter stream read is outstanding. */
+/** Default maximum idle interval after the first content token. */
 export const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 300_000
 /** Default combined request/response context capacity. */
 export const DEFAULT_CONTEXT_WINDOW = 1_000_000
@@ -267,14 +270,18 @@ export class DeepSeekAdapter extends LlmAdapter {
       () => { watchdog.pulse() },
     )[Symbol.asyncIterator]()
     let exhausted = false
+    let idleArmed = false
     try {
       while (true) {
-        const result = await watchdog.next(iterator)
+        const result = await watchdog.next(iterator, { idle: idleArmed })
+        const timeout = timeoutOf(watchdog.signal, STREAM_IDLE_TIMEOUT_CODE)
+        if (timeout !== undefined) throw timeout
         if (result.done) {
           exhausted = true
           return
         }
         yield result.value
+        idleArmed ||= startsPostTokenIdle(result.value)
       }
     } catch (error: unknown) {
       if (timeoutOf(watchdog.signal, STREAM_IDLE_TIMEOUT_CODE) !== undefined) {

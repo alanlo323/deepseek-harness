@@ -197,13 +197,13 @@ describe('bounded retry through the real DeepSeek HTTP/SSE adapter', () => {
     })
   })
 
-  it('turns a stalled body into TIMEOUT and succeeds on the next request', async () => {
-    const server = await start(['stall', 'success'], {
+  it('turns a stalled body after first content into TIMEOUT and succeeds on the next request', async () => {
+    const server = await start(['slow_success', 'success'], {
       apiKey: 'mock-key',
       successText: 'recovered after timeout',
+      chunkDelayMs: 1_500,
     })
-    // This crosses the real HTTP idle timer, so leave scheduler slack between
-    // the stalled attempt and the mock server's immediate successful response.
+    // This crosses the real HTTP idle timer after the first content chunk.
     context = await harness(server.baseURL, { streamIdleTimeoutMs: 1_000 })
     const agent = context.agentLoop.create(SessionId('wire-stall'), {
       provider: 'deepseek-official',
@@ -212,7 +212,7 @@ describe('bounded retry through the real DeepSeek HTTP/SSE adapter', () => {
 
     await sendAndWait(context, agent)
 
-    expect(server.requests.map(record => record.behavior)).toEqual(['stall', 'success'])
+    expect(server.requests.map(record => record.behavior)).toEqual(['slow_success', 'success'])
     expect(agent.session.events.filter(event => event.type === 'llm/retry').map(event => event.data.failure.code))
       .toEqual(['TIMEOUT'])
     expect(finalAssistantText(agent)).toBe('recovered after timeout')

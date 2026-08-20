@@ -288,4 +288,55 @@ describe('idleWatchdog', () => {
     await expect(watchdog.next(iterator)).rejects.toThrow(/already outstanding/)
     pending.resolve({ done: true, value: undefined })
   })
+
+  it('skips the idle timer for an untimed demand and ignores pulse until a timed demand', async () => {
+    vi.useFakeTimers()
+    const pending = Promise.withResolvers<IteratorResult<number>>()
+    using watchdog = idleWatchdog(undefined, 100, 'LLM_STREAM_IDLE_TIMEOUT')
+    const next = watchdog.next({ next: () => pending.promise }, { idle: false })
+    watchdog.pulse()
+    await vi.advanceTimersByTimeAsync(1_000)
+    expect(watchdog.signal.aborted).toBe(false)
+    pending.resolve({ done: false, value: 1 })
+    await expect(next).resolves.toEqual({ done: false, value: 1 })
+
+    const stalled = Promise.withResolvers<IteratorResult<number>>()
+    const timed = watchdog.next({ next: () => stalled.promise })
+    await vi.advanceTimersByTimeAsync(100)
+    expect(timeoutOf(watchdog.signal, 'LLM_STREAM_IDLE_TIMEOUT')).toMatchObject({ timeoutMs: 100 })
+    stalled.reject(watchdog.signal.reason)
+    await expect(timed).rejects.toBe(watchdog.signal.reason)
+  })
+
+  it('still arms when next is called with an empty options object', async () => {
+    vi.useFakeTimers()
+    const pending = Promise.withResolvers<IteratorResult<number>>()
+    using watchdog = idleWatchdog(undefined, 100, 'LLM_STREAM_IDLE_TIMEOUT')
+    const next = watchdog.next({ next: () => pending.promise }, {})
+    await vi.advanceTimersByTimeAsync(100)
+    expect(timeoutOf(watchdog.signal, 'LLM_STREAM_IDLE_TIMEOUT')).toMatchObject({ timeoutMs: 100 })
+    pending.reject(watchdog.signal.reason)
+    await expect(next).rejects.toBe(watchdog.signal.reason)
+  })
+
+  it('rejects concurrent demand during an untimed next', async () => {
+    const pending = Promise.withResolvers<IteratorResult<number>>()
+    using watchdog = idleWatchdog(undefined, 100, 'IDLE')
+    const iterator = { next: () => pending.promise }
+    void watchdog.next(iterator, { idle: false })
+    await expect(watchdog.next(iterator, { idle: false })).rejects.toThrow(/already outstanding/)
+    pending.resolve({ done: true, value: undefined })
+  })
+
+  it('clears an untimed outstanding demand on disposal', async () => {
+    vi.useFakeTimers()
+    const pending = Promise.withResolvers<IteratorResult<number>>()
+    const watchdog = idleWatchdog(undefined, 100, 'LLM_STREAM_IDLE_TIMEOUT')
+    void watchdog.next({ next: () => pending.promise }, { idle: false })
+    watchdog[Symbol.dispose]()
+    await vi.advanceTimersByTimeAsync(1_000)
+    expect(watchdog.signal.aborted).toBe(false)
+    pending.resolve({ done: true, value: undefined })
+    watchdog[Symbol.dispose]()
+  })
 })

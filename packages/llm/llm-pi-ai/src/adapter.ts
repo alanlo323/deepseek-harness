@@ -37,6 +37,7 @@ import {
   LlmAdapter,
   LlmError,
   ReasoningEffortId,
+  startsPostTokenIdle,
 } from '@deepseek-ai/dsh-llm'
 import type {
   GenerateOptions,
@@ -330,9 +331,10 @@ export class PiAiAdapter extends LlmAdapter {
       })
       const iterator = toStreamChunks(events, model.contextWindow)[Symbol.asyncIterator]()
       let exhausted = false
+      let idleArmed = false
       try {
         while (true) {
-          const result = await watchdog.next(iterator)
+          const result = await watchdog.next(iterator, { idle: idleArmed })
           const timeout = timeoutOf(watchdog.signal, 'LLM_STREAM_IDLE_TIMEOUT')
           if (timeout !== undefined) throw timeout
           if (result.done) {
@@ -340,6 +342,7 @@ export class PiAiAdapter extends LlmAdapter {
             return
           }
           yield result.value
+          idleArmed ||= startsPostTokenIdle(result.value)
         }
       } finally {
         if (!exhausted) {
