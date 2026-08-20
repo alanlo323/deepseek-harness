@@ -25,6 +25,7 @@ export const zhHant = {
   'action.dislike': '有問題的回答',
   'action.dislikeActive': '取消標記',
   'note.open': '補充說明',
+  'note.dialog': '反饋',
   'note.placeholder': '這條回答哪裡好，或哪裡有問題？（可選）',
   'note.save': '儲存',
   'note.cancel': '取消',

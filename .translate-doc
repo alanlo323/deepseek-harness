@@ -3,7 +3,7 @@
 ## Default target
 - locale: zh-Hant
 - aliases: Traditional Chinese, 繁體中文
-- source: zh (Simplified Chinese UI dictionaries; Chinese-first key set)
+- source: zh (Simplified Chinese UI dictionaries; Chinese-first key set). Exception: a package that types `zh` as `{ [Key in keyof typeof en]: string }` uses `en` as the key-set source; still translate `zhHant` from the Simplified `zh` values.
 
 ## Surfaces
 - in scope: product UI locale dictionaries registered through `ctx.locale.register` (`zh` / `en` / `zh-Hant`)
@@ -24,19 +24,30 @@
 - comments and JSDoc
 
 ## Missing detection
-- Typed `register(ns, dicts)` requires `Record<LocaleId, LocaleDictOf<N>>`; a missing `zh-Hant` seat or missing key is a compile error (`satisfies Record<Key, string>` / `Record<Key, string>`).
-- Untyped namespaces must register a matching `zh-Hant` dictionary in the same effect as `zh` and `en`.
-- After a merge, scan the git range for `locale.register` calls and `export const zh` dictionaries that lack a `zh-Hant` counterpart.
+- Completeness is per key, not per file. A `zhHant` object that already exists can still be stale after `origin/master` adds keys to `zh`/`en`.
+- Typed `register(ns, dicts)` requires `Record<LocaleId, LocaleDictOf<N>>`. A missing `'zh-Hant'` seat, or a `zhHant` object missing any `zh` key, is a compile error (`satisfies typeof zh`, `satisfies Record<Key, string>`, or `Record<Key, string>`).
+- Untyped namespaces must register a matching `zh-Hant` dictionary in the same effect as `zh` and `en`, with the same key set.
+- After a merge, inspect the git range and then the live dictionaries:
+  1. `locale.register` calls that omit `'zh-Hant'`.
+  2. `export const zh` / `export const en` with no `zhHant` sibling.
+  3. Key set of `zh` (or `en` when it owns the keys) minus keys present on `zhHant`. That third case is what `pnpm run build` / `tsc -b tsconfig.client.json` rejects.
 
 ## Process
-- Keep `zh` as the key-set source of truth.
-- Add a complete `zhHant` dictionary next to `zh`/`en` and pass `'zh-Hant': zhHant` in the same typed `register` call.
-- Translate from the Simplified `zh` copy. Do not use runtime OpenCC or treat conversion output as source of truth.
+- Keep the package's documented key-set source of truth (`zh`, or `en` when the file types Chinese off `keyof typeof en`).
+- Add or extend `zhHant` next to `zh`/`en` and pass `'zh-Hant': zhHant` in the same typed `register` call.
+- Patch only the missing keys against the Simplified `zh` values for those keys. Do not re-translate the rest of the dictionary. Do not use runtime OpenCC or treat conversion output as source of truth.
 - Do not add Traditional Chinese documentation or site locales.
 
+## CJK webfont (not a dictionary)
+- `DshCjk` faces live in `packages/client/web/src/cjk-faces.css`. Family tokens stay on ui-theme. This is product-wide glyph selection, not a `zh-Hant` locale branch, but it is required for Traditional Chinese UI on Windows/Linux.
+- `boot.ts` must `import './cjk-faces.css'` (before `./base.css`). tsdown copies only JavaScript-imported `.css` into `lib/`; a CSS `@import` inside `base.css` is not emitted, and `pnpm run build:web` then fails resolving `cjk-faces.css` from `apps/web`.
+- Do not move those `@font-face` rules back into plugin-inlined ui-theme CSS: `/plugins` serves only `client.js`, so Vite cannot emit hashed `assets/fonts/` files from that path.
+- After a merge, if shell CSS or the static-linked CSS asset plugin changes, confirm `packages/client/web/lib/cjk-faces.css` is emitted and that `boot.ts` still JS-imports it.
+
 ## Verify
-- `pnpm exec vitest run` on the owning package's client specs (dictionary occupancy and `setLocale('zh-Hant')` copy)
-- Typecheck of the edited packages (typed `register` / `satisfies`)
+- `pnpm exec tsc -b tsconfig.client.json` (same client compile `pnpm run build` runs as `build:lib:client`). A green package test is not a substitute: occupancy tests can pass while `zhHant` is missing new keys.
+- `pnpm exec vitest run` on the owning package's client specs when copy or occupancy behavior changed (`setLocale('zh-Hant')`, injected labels).
+- When CJK faces or shell CSS wiring changed: `pnpm exec vitest run packages/client/web/tests/base-styles.client.spec.ts apps/web/tests/cjk-webfont.spec.ts`, then `pnpm run build:lib:client` and `pnpm --filter @deepseek-ai/dsh-web-frontend run build` (the step that actually reads `lib/` CSS).
 
 ## Style
 - comments/JSDoc/logging: English

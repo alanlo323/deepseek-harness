@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 const THEME_PACKAGE = '@deepseek-ai/dsh-client-ui-theme'
 const baseCss = readFileSync(fileURLToPath(new URL('../src/base.css', import.meta.url)), 'utf8')
+const bootTs = readFileSync(fileURLToPath(new URL('../src/boot.ts', import.meta.url)), 'utf8')
 
 /**
  * Import specifiers of the sheet, in source order. Quote style and surrounding
@@ -16,11 +17,14 @@ function importOrder(css: string): string[] {
   return [...css.matchAll(/@import\s+['"]([^'"]+)['"]/g)].map(([, specifier = '']) => specifier)
 }
 
-const imports = importOrder(baseCss)
-
 describe('web shell base.css', () => {
   it('leaves theme styles to the dynamic ui-theme client entry', () => {
-    expect(imports).toEqual(['./cjk-faces.css'])
+    expect(importOrder(baseCss)).toEqual([])
     expect(baseCss).not.toContain(THEME_PACKAGE)
+  })
+
+  it('loads DshCjk faces through a JS import so tsdown emits the sheet into lib/', () => {
+    expect(bootTs).toMatch(/import '\.\/cjk-faces\.css'/)
+    expect(bootTs.indexOf("import './cjk-faces.css'")).toBeLessThan(bootTs.indexOf("import './base.css'"))
   })
 })

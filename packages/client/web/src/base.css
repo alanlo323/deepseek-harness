@@ -1,9 +1,6 @@
 /* Shell-owned mount defaults. Theme tokens arrive with the ui-theme client
- * plugin before the loader roster activates. DshCjk faces compile here so
- * Vite can hash the Noto woff2 files. */
-@import './cjk-faces.css';
-
-
+ * plugin before the loader roster activates. DshCjk faces are a sibling
+ * sheet imported from boot.ts; tsdown copies only JS-imported CSS into lib/. */
 html,
 body,
 #root {

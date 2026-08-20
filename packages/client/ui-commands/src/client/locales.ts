@@ -22,6 +22,7 @@ export const zhHant = {
   'status.empty': '無選項',
   'overlay.aria': '/{command} 選項',
   'listbox.aria': '/{command} 匹配項',
+  'notice.imagesUnsupported': '/{command} 不接受圖片附件，請先移除圖片',
 }
 
 /** The command namespace key union. */

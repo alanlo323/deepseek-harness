@@ -24,8 +24,8 @@ Status: implemented
 
 ## Consequences
 
-Windows 与 Linux 每个实际用到的字重大约下载 1 MB woff2（正文 400，用到 500/600/700 再拉）。装有 PingFang TC 的 macOS 不会拉取 Noto。Linux CI 的 aria 金标仍不钉 `font-family`；若以后有像素快照，必须按 Noto 度量来预期。OFL 字型通过 `@deepseek-ai/dsh-client-web` 依赖进入生成的第三方声明。该生成器的宽松 SPDX 集合包含 `OFL-1.1`，因此开源字型可作为 webfont 交付，而无需按包身份例外；见[生成的第三方声明](../process/2026-07-30-generated-third-party-notices.md)。faces 写在 `packages/client/web/src/cjk-faces.css`，以便 Vite 壳层构建把 `url('@fontsource/...')` 改写成带哈希的 `assets/fonts/` 文件；插件内联的 ui-theme CSS 无法发出这些资源，因为 `/plugins` 只提供 `client.js`。
+Windows 与 Linux 每个实际用到的字重大约下载 1 MB woff2（正文 400，用到 500/600/700 再拉）。装有 PingFang TC 的 macOS 不会拉取 Noto。Linux CI 的 aria 金标仍不钉 `font-family`；若以后有像素快照，必须按 Noto 度量来预期。OFL 字型通过 `@deepseek-ai/dsh-client-web` 依赖进入生成的第三方声明。该生成器的宽松 SPDX 集合包含 `OFL-1.1`，因此开源字型可作为 webfont 交付，而无需按包身份例外；见[生成的第三方声明](../process/2026-07-30-generated-third-party-notices.md)。faces 写在 `packages/client/web/src/cjk-faces.css`，由 `boot.ts` 导入，以便 tsdown 把该样式表发到 `lib/`（它只复制 JavaScript 导入的 CSS；`base.css` 里的 CSS `@import` 不会被发出，Vite 生产构建也就解析不到）。随后 Vite 壳层构建把 `url('@fontsource/...')` 改写成带哈希的 `assets/fonts/` 文件；插件内联的 ui-theme CSS 无法发出这些资源，因为 `/plugins` 只提供 `client.js`。
 
 ## Testing
 
-`packages/client/ui-theme/tests/font-stacks.client.spec.ts` 断言每个 `DshCjk` face 都是先 `local('PingFang TC')`，再 `url('@fontsource/noto-sans-tc/files/noto-sans-tc-chinese-traditional-<weight>-normal.woff2')`，再 `local('Microsoft JhengHei')`，且 `font-display: swap`，并且 `require.resolve` 能找到每个 woff2。`apps/web/tests/cjk-webfont.spec.ts` 断言对壳层 base 样式表做 Vite 构建时，会把这些 `url('@fontsource/...')` 改写成带哈希的 woff2 资源。
+`packages/client/ui-theme/tests/font-stacks.client.spec.ts` 断言每个 `DshCjk` face 都是先 `local('PingFang TC')`，再 `url('@fontsource/noto-sans-tc/files/noto-sans-tc-chinese-traditional-<weight>-normal.woff2')`，再 `local('Microsoft JhengHei')`，且 `font-display: swap`，并且 `require.resolve` 能找到每个 woff2。`apps/web/tests/cjk-webfont.spec.ts` 断言对 `cjk-faces.css` 做 Vite 构建时，会把这些 `url('@fontsource/...')` 改写成带哈希的 woff2 资源。

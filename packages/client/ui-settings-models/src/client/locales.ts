@@ -273,6 +273,8 @@ export const zhHant = {
   fetchEmpty: '該提供方沒有列出任何模型，請手動添加。',
   fetchTitle: '選擇要添加的模型',
   fetchDescription: '以下是模型提供方的可用模型，勾選要添加的模型。',
+  fetchSelectAll: '全選',
+  fetchDeselectAll: '取消全選',
   fetchAdopt: '添加所選',
   customAdd: '添加自定義提供方',
   customTitle: '自定義提供方',

@@ -8,7 +8,7 @@ import { build } from 'vite'
 import { describe, expect, it } from 'vitest'
 
 const WEB_ROOT = fileURLToPath(new URL('..', import.meta.url))
-const SHELL_BASE_CSS = resolve(WEB_ROOT, '../../packages/client/web/src/base.css')
+const SHELL_CJK_FACES = resolve(WEB_ROOT, '../../packages/client/web/src/cjk-faces.css')
 
 /**
  * Collect emitted CSS text from a Vite `build({ write: false })` result.
@@ -38,7 +38,7 @@ describe('CJK webfont Vite pipeline', () => {
         write: false,
         sourcemap: false,
         emptyOutDir: false,
-        rollupOptions: { input: SHELL_BASE_CSS },
+        rollupOptions: { input: SHELL_CJK_FACES },
       },
     })
     const css = cssAssets(result)
