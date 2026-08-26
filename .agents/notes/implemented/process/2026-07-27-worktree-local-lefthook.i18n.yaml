@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-07-27-worktree-local-lefthook.md
 2026-07-27-worktree-local-lefthook.md: 03a425be7d6c720f7c1ae68cdb3d3fa7b13f8929
-2026-07-27-worktree-local-lefthook.zh.md: e6cfcb4c05a8d7c34e9e1b0a56c19730800cc917
+2026-07-27-worktree-local-lefthook.zh.md: e2f5203943db90838c445ff2ffb96d25e51d25a0
