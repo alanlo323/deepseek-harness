@@ -78,7 +78,7 @@ export const zhHant = {
   'readonly.title': '此子代理暫時只讀',
   'readonly.oneShot.body': '一次性任務不支援後續消息，可在這裡查看完整執行記錄。',
   'readonly.body': '父會話當前不在線，重新打開父會話後即可繼續發送消息。',
-} satisfies typeof zh
+} satisfies Record<keyof typeof zh, string>
 
 /** English dictionary, key-identical to the Chinese source of truth. */
 export const en: Record<SubagentKey, string> = {
