@@ -72,12 +72,13 @@ export const zhHant = {
   'count.total.other': '{count} 個子代理',
   'count.running.one': '{count} 個子代理，正在運行',
   'count.running.other': '{count} 個子代理，正在運行',
+  'switcher.aria': '切換子代理：{title}',
   'tree.aria': '子代理會話',
   'readonly.oneShot.title': '一次性子代理記錄',
   'readonly.title': '此子代理暫時只讀',
   'readonly.oneShot.body': '一次性任務不支援後續消息，可在這裡查看完整執行記錄。',
   'readonly.body': '父會話當前不在線，重新打開父會話後即可繼續發送消息。',
-}
+} satisfies typeof zh
 
 /** English dictionary, key-identical to the Chinese source of truth. */
 export const en: Record<SubagentKey, string> = {
