@@ -1,15 +1,19 @@
 /**
  * `slash.menu` namespace dictionaries: group titles keyed by source name
  * (the lookup chain returns the key itself, so an unknown source shows its
- * raw name), the pending row, and the listbox aria label.
+ * raw name), the pending row, and the listbox and header aria labels.
  */
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
-  'command': '命令',
+  'command': '指令',
   'skill': '技能',
   'subagent': '子智能体',
   'loading': '正在加载…',
+  'drill.aria': '进入目录',
+  'drill.hint': '进入目录',
+  'drill.key': 'Tab',
+  'crumbs.aria': '目录导航',
   'suggestions.aria': '触发候选建议',
 } satisfies Record<string, string>
 
@@ -20,8 +24,12 @@ export const zhHant = {
   'skill': '技能',
   'subagent': '子智能體',
   'loading': '正在載入…',
+  'drill.aria': '進入目錄',
+  'drill.hint': '進入目錄',
+  'drill.key': 'Tab',
+  'crumbs.aria': '目錄導航',
   'suggestions.aria': '觸發候選建議',
-}
+} satisfies typeof zh
 
 /** The slash.menu namespace key union. */
 export type MenuKey = keyof typeof zh
@@ -32,5 +40,9 @@ export const en = {
   'skill': 'Skills',
   'subagent': 'Subagents',
   'loading': 'Loading…',
+  'drill.aria': 'Browse folder',
+  'drill.hint': 'Browse folder',
+  'drill.key': 'Tab',
+  'crumbs.aria': 'Folder navigation',
   'suggestions.aria': 'Trigger suggestions',
 } satisfies Record<MenuKey, string>

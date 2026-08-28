@@ -1,19 +1,33 @@
 // @vitest-environment jsdom
-// WebBlock: both kinds of the web card. The search card's answer, its citation
-// list with the title-or-hostname label fallback and optional snippet/date, the
-// full source list under one <ol>, and the truncated indicator; the fetch
-// card's linked URL, status, and truncation. Safe-link
-// attributes on both kinds: an http(s) URL becomes an external anchor
-// (target/rel), any other URL renders as plain text with no href.
 
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
-import { WebBlock } from '../src/index.ts'
-import type { WebSourceView } from '../src/index.ts'
+import { WebBlock as LocalizedWebBlock } from '../src/index.ts'
+import type {
+  WebFetchBlockProps, WebSearchBlockProps, WebSourceView,
+} from '../src/index.ts'
+import { webBlockLabels } from './labels.client.ts'
+
+type WebBlockProps =
+  | Omit<WebSearchBlockProps, 'labels'>
+  | Omit<WebFetchBlockProps, 'labels'>
+
+function WebSearchBlock(props: Omit<WebSearchBlockProps, 'labels'>) {
+  return <LocalizedWebBlock {...props} labels={webBlockLabels} />
+}
+
+function WebFetchBlock(props: Omit<WebFetchBlockProps, 'labels'>) {
+  return <LocalizedWebBlock {...props} labels={webBlockLabels} />
+}
+
+function WebBlock(props: WebBlockProps) {
+  return props.kind === 'search'
+    ? <WebSearchBlock {...props} />
+    : <WebFetchBlock {...props} />
+}
 
 afterEach(cleanup)
 
-/** `count` sources with sequential hostnames, so each row reads distinctly. */
 function sources(count: number): WebSourceView[] {
   return Array.from({ length: count }, (_value, index) => ({
     url: `https://site-${index}.example.com/page`,
@@ -174,28 +188,5 @@ describe('WebBlock fetch card', () => {
   it('carries a non-200 status verbatim', () => {
     const view = render(<WebBlock kind="fetch" url="https://example.com/missing" statusCode={404} truncated={false} />)
     expect(view.getByText('HTTP 404')).toBeTruthy()
-  })
-})
-
-describe('WebBlock labels', () => {
-  it('renders injected search and fetch copy', () => {
-    const empty = render(
-      <WebBlock kind="search" sources={[]} truncated labels={{ noResults: 'None', sourcesTruncated: 'Sources cut' }} />,
-    )
-    expect(empty.getByText('None')).toBeTruthy()
-    expect(empty.getByText('Sources cut')).toBeTruthy()
-    expect(empty.queryByText('未找到结果')).toBeNull()
-    cleanup()
-    const fetch = render(
-      <WebBlock
-        kind="fetch"
-        url="https://example.com"
-        statusCode={200}
-        truncated
-        labels={{ contentTruncated: 'Body cut' }}
-      />,
-    )
-    expect(fetch.getByText('Body cut')).toBeTruthy()
-    expect(fetch.queryByText('内容已截断')).toBeNull()
   })
 })

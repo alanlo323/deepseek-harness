@@ -5,13 +5,13 @@ export type AgentPresetSettingsKey =
   | 'title' | 'description' | 'loading' | 'error' | 'userTrust' | 'seatHint' | 'headerHint'
   | 'nav' | 'sectionIntro' | 'builtIn' | 'setDefault' | 'view'
   | 'presetStandardName' | 'presetStandardDescription'
-  | 'presetCodeName' | 'presetCodeDescription'
+  | 'presetPtcName' | 'presetPtcDescription'
   | 'presetMinimalName' | 'presetMinimalDescription'
   | 'presetCordisName' | 'presetCordisDescription'
   | 'duplicate' | 'duplicateUnavailable' | 'delete' | 'presetId' | 'presetIdPlaceholder' | 'copyOf'
   | 'displayName' | 'displayNamePlaceholder'
   | 'inUse' | 'noDescription' | 'builtInGroup' | 'customGroup'
-  | 'brokenBadge' | 'brokenNoCopy'
+  | 'brokenBadge' | 'brokenNoCopy' | 'switchRefused'
   | 'composition' | 'cancel' | 'close' | 'retry'
   | 'copyTitle' | 'copyIntro' | 'create' | 'creating' | 'creatorDraft'
   | 'openLocation' | 'showLocation' | 'revealedPathLabel'
@@ -37,9 +37,9 @@ export const en: Record<AgentPresetSettingsKey, string> = {
   presetStandardName: 'Standard mode',
   presetStandardDescription:
     'Full coding agent with file editing, shell, file and web search, skills, planning, goals, subagents, and workflows.',
-  presetCodeName: 'PTC mode',
-  presetCodeDescription:
-    'All Standard mode capabilities, with tools exposed through the Code Mode SDK so the model can combine multi-step operations in one TypeScript program.',
+  presetPtcName: 'PTC mode',
+  presetPtcDescription:
+    'All Standard mode capabilities, with tools exposed through the PTC mode SDK so the model can combine multi-step operations in one TypeScript program.',
   presetMinimalName: 'Minimal mode',
   presetMinimalDescription:
     'Two-tool coding agent with persistent bash and str_replace_editor.',
@@ -59,6 +59,7 @@ export const en: Record<AgentPresetSettingsKey, string> = {
   noDescription: 'No description.',
   brokenBadge: 'Failed to load',
   brokenNoCopy: 'A preset that failed to load cannot be duplicated',
+  switchRefused: 'Could not switch to {name}: {reason}',
   copyOf: 'Copied from',
   composition: 'Composition (agent.cordis.yml)',
   cancel: 'Cancel',
@@ -100,8 +101,8 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
   view: '查看',
   presetStandardName: '标准模式',
   presetStandardDescription: '功能完整的编码 Agent，支持文件编辑、Shell、文件与网页检索、Skills、计划、目标、子代理和工作流。',
-  presetCodeName: 'PTC 模式',
-  presetCodeDescription: '具备标准模式的全部能力，并通过 Code Mode SDK 呈现工具，让模型用一个 TypeScript 程序组合多步操作。',
+  presetPtcName: 'PTC 模式',
+  presetPtcDescription: '具备标准模式的全部能力，并通过 PTC 模式 SDK 呈现工具，让模型用一个 TypeScript 程序组合多步操作。',
   presetMinimalName: '极简模式',
   presetMinimalDescription: '仅提供持久 bash 与 str_replace_editor 的双工具编码 Agent。',
   presetCordisName: '创造模式',
@@ -119,6 +120,7 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
   noDescription: '暂无描述。',
   brokenBadge: '加载失败',
   brokenNoCopy: '预设加载失败，不能复制',
+  switchRefused: '无法切换到「{name}」：{reason}',
   copyOf: '复制自',
   composition: '组装（agent.cordis.yml）',
   cancel: '取消',
@@ -157,8 +159,8 @@ export const zhHant = {
   view: '查看',
   presetStandardName: '標準模式',
   presetStandardDescription: '功能完整的編碼 Agent，支援檔案編輯、Shell、檔案與網頁檢索、Skills、計劃、目標、子代理和工作流。',
-  presetCodeName: 'PTC 模式',
-  presetCodeDescription: '具備標準模式的全部能力，並通過 Code Mode SDK 呈現工具，讓模型用一個 TypeScript 程序組合多步操作。',
+  presetPtcName: 'PTC 模式',
+  presetPtcDescription: '具備標準模式的全部能力，並通過 PTC 模式 SDK 呈現工具，讓模型用一個 TypeScript 程序組合多步操作。',
   presetMinimalName: '極簡模式',
   presetMinimalDescription: '僅提供持久 bash 與 str_replace_editor 的雙工具編碼 Agent。',
   presetCordisName: '創造模式',
@@ -176,6 +178,7 @@ export const zhHant = {
   noDescription: '暫無描述。',
   brokenBadge: '載入失敗',
   brokenNoCopy: '預設載入失敗，不能複製',
+  switchRefused: '無法切換到「{name}」：{reason}',
   copyOf: '複製自',
   composition: '組裝（agent.cordis.yml）',
   cancel: '取消',
@@ -225,7 +228,7 @@ interface PresetLocaleKeys {
 
 const BUILT_IN_PRESET_KEYS: Readonly<Partial<Record<string, PresetLocaleKeys>>> = {
   standard: { name: 'presetStandardName', description: 'presetStandardDescription' },
-  code: { name: 'presetCodeName', description: 'presetCodeDescription' },
+  ptc: { name: 'presetPtcName', description: 'presetPtcDescription' },
   minimal: { name: 'presetMinimalName', description: 'presetMinimalDescription' },
   cordis: { name: 'presetCordisName', description: 'presetCordisDescription' },
 }

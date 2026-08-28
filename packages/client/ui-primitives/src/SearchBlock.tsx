@@ -1,13 +1,3 @@
-// SearchBlock: the search surface for a completed content or path search — a
-// banner (result summary that folds the pre-cap total in when the tool capped
-// the result, plus a copy control), then either grep matches grouped by file
-// (each file a bold
-// path header with its `lineNumber: line` rows, the group collapsible) or a
-// flat glob path list. Both shapes flatten to one list of rows the height cap
-// slices head/tail over, and neither soft-wraps: a long match line or path
-// scrolls horizontally instead of folding. Geometry mirrors CodeBlock and
-// TerminalBlock so a search card reads as one family with them.
-
 import { useCallback, useState, type ReactNode } from 'react'
 import clsx from 'clsx'
 import { headTailCap } from './head-tail-cap.ts'
@@ -39,6 +29,8 @@ export interface SearchFileGroup {
 
 /** Fields both search shapes carry (the render site positions; this component draws). */
 interface SearchBlockCommon {
+  /** Localized chrome supplied by the owning render site. */
+  labels: SearchBlockLabels
   /**
    * Whether the tool capped the inline result: the shape carries only the
    * retained results, not every result the search found. The banner summary
@@ -52,50 +44,19 @@ interface SearchBlockCommon {
   maxLines?: number | undefined
   /** Extra class merged onto the wrapper. */
   className?: string | undefined
-  /** Localized display copy; omitted fields keep the built-in defaults. */
-  labels?: Partial<SearchBlockLabels> | undefined
 }
 
-/**
- * Display copy for the search surface; the owner passes localized labels
- * (this package is cordis-free, so copy arrives via props). Every field
- * defaults to the current built-in value, so existing consumers render
- * unchanged.
- */
+/** Localized chrome for {@link SearchBlock}. */
 export interface SearchBlockLabels {
-  /** Truncation clause (`显示 X / 共 N`) prepended to the unit when capped. */
-  shownOfTotal: (shown: number, total: number) => string
-  /** Path-search summary, given the count clause (plain or truncated). */
-  paths: (count: string) => string
-  /** Match-search summary, given the count clause and distinct-file count. */
-  matches: (count: string, files: number) => string
-  /** Empty-result placeholder. */
-  empty: string
-  /** Copy-button idle label. */
+  pathsSummary: (shown: number, total: number, truncated: boolean) => string
+  matchesSummary: (shown: number, total: number, files: number, truncated: boolean) => string
   copy: string
-  /** Copy-button label during the post-copy confirmation window. */
   copied: string
-  /** Collapse-toggle aria label while expanded. */
+  noResults: string
   collapseAria: string
-  /** Collapse-toggle text while expanded. */
-  collapse: string
-  /** Expand-toggle aria label while capped, given the hidden row count. */
   expandAria: (hidden: number) => string
-  /** Expand-toggle text while capped, given the hidden row count. */
+  collapse: string
   expand: (hidden: number) => string
-}
-
-const DEFAULT_LABELS: SearchBlockLabels = {
-  shownOfTotal: (shown, total) => `显示 ${shown} / 共 ${total}`,
-  paths: count => `${count} 个路径`,
-  matches: (count, files) => `${count} 处匹配 · ${files} 个文件`,
-  empty: '无结果',
-  copy: '复制',
-  copied: '复制成功',
-  collapseAria: '收起结果',
-  collapse: '收起',
-  expandAria: hidden => `展开其余 ${hidden} 行结果`,
-  expand: hidden => `… 其余 ${hidden} 行`,
 }
 
 /** Props for the grouped-matches (`grep`) shape. */
@@ -166,17 +127,10 @@ function shownCount(props: SearchBlockProps): number {
  * @param total - the pre-cap total the truncation clause reports.
  * @returns the summary text.
  */
-function summaryText(
-  props: SearchBlockProps,
-  shown: number,
-  truncated: boolean,
-  total: number,
-  labels: SearchBlockLabels,
-): string {
-  const count = truncated ? labels.shownOfTotal(shown, total) : `${shown}`
+function summaryText(props: SearchBlockProps, shown: number, truncated: boolean, total: number): string {
   return props.kind === 'paths'
-    ? labels.paths(count)
-    : labels.matches(count, props.files.length)
+    ? props.labels.pathsSummary(shown, total, truncated)
+    : props.labels.matchesSummary(shown, total, props.files.length, truncated)
 }
 
 /**
@@ -221,8 +175,7 @@ function rowKey(row: SearchRow): string {
  * @returns the search block element.
  */
 export function SearchBlock(props: SearchBlockProps) {
-  const { truncated, total, maxLines = DEFAULT_SEARCH_MAX_LINES, className, labels } = props
-  const copy = labels === undefined ? DEFAULT_LABELS : { ...DEFAULT_LABELS, ...labels }
+  const { truncated, total, maxLines = DEFAULT_SEARCH_MAX_LINES, className } = props
   const [expanded, setExpanded] = useState(false)
   const [collapsed, setCollapsed] = useState<ReadonlySet<number>>(() => new Set())
 
@@ -290,15 +243,15 @@ export function SearchBlock(props: SearchBlockProps) {
   return (
     <div className={clsx(css.block, className)} data-search={props.kind}>
       <div className={css.header}>
-        <span className={css.summary}>{summaryText(props, shown, truncated, total, copy)}</span>
+        <span className={css.summary}>{summaryText(props, shown, truncated, total)}</span>
         {!empty && (
           <button type="button" className={css.copyButton} onClick={onCopy}>
-            {copied ? copy.copied : copy.copy}
+            {copied ? props.labels.copied : props.labels.copy}
           </button>
         )}
       </div>
       {empty
-        ? <div className={css.empty}>{copy.empty}</div>
+        ? <div className={css.empty}>{props.labels.noResults}</div>
         : (
           <div className={css.body}>
             {head.map(row => (
@@ -309,10 +262,10 @@ export function SearchBlock(props: SearchBlockProps) {
                 type="button"
                 className={css.expand}
                 aria-expanded={expanded}
-                aria-label={expanded ? copy.collapseAria : copy.expandAria(hidden)}
+                aria-label={expanded ? props.labels.collapseAria : props.labels.expandAria(hidden)}
                 onClick={onToggle}
               >
-                {expanded ? copy.collapse : copy.expand(hidden)}
+                {expanded ? props.labels.collapse : props.labels.expand(hidden)}
               </button>
             )}
             {tailHeader !== undefined && (

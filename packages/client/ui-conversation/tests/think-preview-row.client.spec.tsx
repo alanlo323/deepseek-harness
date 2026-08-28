@@ -1,8 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
-import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
+import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
+import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
+import type { SessionPendingInteractionSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { ThinkPreviewRow } from '../src/client/settings/ThinkPreviewRow.tsx'
 import type { ThinkPreviewRowProps } from '../src/client/settings/ThinkPreviewRow.tsx'
 import { ThinkPreviewPreference } from '../src/client/settings/think-preview-preference.ts'
@@ -20,10 +24,13 @@ function emptySessions() {
 }
 
 function emptyWorkspaces() {
-  return bindSnapshotSelector(createSnapshotStore<WorkspaceListState>({
+  return bindSnapshotSelector(createSnapshotStore<WorkspaceSnapshot>({
     items: [], archivedSessionIds: [], state: 'idle', phase: 'ready', error: null,
-    baselinesReady: true, recentWorkspaceId: undefined,
   }))
+}
+
+function noPendingInteraction() {
+  return bindSnapshotSelector(createSnapshotStore<SessionPendingInteractionSnapshot>(new Map()))
 }
 
 function mount() {
@@ -31,6 +38,7 @@ function mount() {
   const setCollapsedThinkPreview = vi.fn((mode: 'prefix' | 'follow-end') => { preference.setMode(mode) })
   const props: ThinkPreviewRowProps = {
     useSessions: emptySessions(),
+    useSessionPendingInteraction: noPendingInteraction(),
     useWorkspaces: emptyWorkspaces(),
     useCollapsedThinkPreview: bindSnapshotSelector(preference.mode),
     setCollapsedThinkPreview,

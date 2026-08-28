@@ -1,26 +1,5 @@
-// WebBlock: the surface for a completed web retrieval. One component draws both
-// kinds of the `web` render intent, discriminated by `kind`: a `search` shows an
-// optional provider answer above a citation list of sources (each a safe
-// external link labelled by its title, or its hostname when the provider gave
-// none, with the snippet and publication date below it), and a `fetch` shows a
-// compact retrieval summary (the linked final URL and its HTTP status). Both
-// mark a capped retrieval. Every link is a same-origin-safe external anchor:
-// only http(s) URLs become anchors (target/rel set) — the http(s) subset of the
-// allowlist MarkdownText applies to untrusted assistant-authored links (it also
-// permits mailto, excluded here); an unparseable or non-http URL renders as
-// plain text. Geometry, radius, and fonts mirror CodeBlock/TerminalBlock so a
-// web card reads as one family with them; the whole source list renders inside a
-// fixed-height scroll container (its `.sources` max-height), so a long list
-// scrolls in place rather than growing the card — and that container's
-// `padding-left` must stay wide enough for the widest `<li>` marker, since a
-// scroll container clips inline-start overflow irrecoverably. The card draws every source the
-// view carries: the tool already cut the list to its source cap, and `truncated`
-// reports that cut. A content-only transform downstream of the tool — spill-policy
-// replacing an oversized result's text while leaving its presentationMeta whole —
-// can still narrow what the model reads below this list.
-
 import clsx from 'clsx'
-import { MarkdownText } from './markdown/MarkdownText.tsx'
+import { MarkdownText, type MarkdownLabels } from './markdown/MarkdownText.tsx'
 import css from './WebBlock.module.css'
 
 /**
@@ -39,30 +18,11 @@ export interface WebSourceView {
   publishedAt?: string | undefined
 }
 
-/**
- * Display copy for the web surface; the owner passes localized labels
- * (this package is cordis-free, so copy arrives via props). Every field
- * defaults to the current built-in value, so existing consumers render
- * unchanged.
- */
-export interface WebBlockLabels {
-  /** Empty search card (no answer and no sources). */
-  noResults: string
-  /** Footer when the search source list was cut to the tool's cap. */
-  sourcesTruncated: string
-  /** Meta note when the fetched content was cut. */
-  contentTruncated: string
-}
-
-const DEFAULT_LABELS: WebBlockLabels = {
-  noResults: '未找到结果',
-  sourcesTruncated: '来源列表已截断',
-  contentTruncated: '内容已截断',
-}
-
 /** A `web_search` card: an optional answer over a capped citation list. */
 export interface WebSearchBlockProps {
   kind: 'search'
+  /** Localized chrome supplied by the owning render site. */
+  labels: WebBlockLabels
   /** The provider-generated answer, rendered as markdown above the sources. */
   answer?: string | undefined
   /** The cited sources, in provider order. */
@@ -71,13 +31,13 @@ export interface WebSearchBlockProps {
   truncated: boolean
   /** Extra class merged onto the wrapper (callers position; this component draws). */
   className?: string | undefined
-  /** Localized display copy; omitted fields keep the built-in defaults. */
-  labels?: Partial<WebBlockLabels> | undefined
 }
 
 /** A `web_fetch` card: the retrieval summary for one fetched URL. */
 export interface WebFetchBlockProps {
   kind: 'fetch'
+  /** Localized chrome supplied by the owning render site. */
+  labels: WebBlockLabels
   /** The final URL after allowed redirects; becomes a safe external link when http(s). */
   url: string
   /** HTTP status code of the fetched response. */
@@ -86,12 +46,19 @@ export interface WebFetchBlockProps {
   truncated: boolean
   /** Extra class merged onto the wrapper (callers position; this component draws). */
   className?: string | undefined
-  /** Localized display copy; omitted fields keep the built-in defaults. */
-  labels?: Partial<WebBlockLabels> | undefined
 }
 
 /** A completed web retrieval card, discriminated by `kind`. */
 export type WebBlockProps = WebSearchBlockProps | WebFetchBlockProps
+
+/** Localized chrome for {@link WebBlock}. */
+export interface WebBlockLabels {
+  noResults: string
+  sourcesTruncated: string
+  http: string
+  contentTruncated: string
+  markdown: MarkdownLabels
+}
 
 /**
  * The URL to link to, or undefined when the URL must render as plain text. Only
@@ -178,8 +145,7 @@ function SourceItem({ source, ordinal }: { source: WebSourceView; ordinal: numbe
  * @param props - see {@link WebSearchBlockProps}.
  * @returns the search card element.
  */
-function WebSearchBlock({ answer, sources, truncated, className, labels }: WebSearchBlockProps) {
-  const copy = labels === undefined ? DEFAULT_LABELS : { ...DEFAULT_LABELS, ...labels }
+function WebSearchBlock({ answer, sources, truncated, labels, className }: WebSearchBlockProps) {
   // A provider may legitimately return no answer and no sources; the chat WebRow
   // does not show the raw result content, so without this the user would see an
   // empty card. Mirror the backend's `No results found.` render text.
@@ -187,16 +153,16 @@ function WebSearchBlock({ answer, sources, truncated, className, labels }: WebSe
   return (
     <div className={clsx(css.block, className)} data-web="search">
       {answer !== undefined && answer !== '' && (
-        <div className={css.answer}><MarkdownText text={answer} /></div>
+        <div className={css.answer}><MarkdownText text={answer} labels={labels.markdown} /></div>
       )}
       {empty ? (
-        <div className={css.empty}>{copy.noResults}</div>
+        <div className={css.empty}>{labels.noResults}</div>
       ) : (
         <ol className={css.sources}>
           {sources.map((source, index) => <SourceItem key={index} source={source} ordinal={index + 1} />)}
         </ol>
       )}
-      {truncated && <div className={css.truncated}>{copy.sourcesTruncated}</div>}
+      {truncated && <div className={css.truncated}>{labels.sourcesTruncated}</div>}
     </div>
   )
 }
@@ -206,14 +172,13 @@ function WebSearchBlock({ answer, sources, truncated, className, labels }: WebSe
  * @param props - see {@link WebFetchBlockProps}.
  * @returns the fetch card element.
  */
-function WebFetchBlock({ url, statusCode, truncated, className, labels }: WebFetchBlockProps) {
-  const copy = labels === undefined ? DEFAULT_LABELS : { ...DEFAULT_LABELS, ...labels }
+function WebFetchBlock({ url, statusCode, truncated, labels, className }: WebFetchBlockProps) {
   return (
     <div className={clsx(css.block, css.fetch, className)} data-web="fetch">
       <SafeLink url={url} label={url} className={css.fetchUrl} />
       <div className={css.fetchMeta}>
-        <span className={css.status}>HTTP {statusCode}</span>
-        {truncated && <span className={css.truncated}>{copy.contentTruncated}</span>}
+        <span className={css.status}>{labels.http} {statusCode}</span>
+        {truncated && <span className={css.truncated}>{labels.contentTruncated}</span>}
       </div>
     </div>
   )

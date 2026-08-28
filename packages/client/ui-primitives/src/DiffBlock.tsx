@@ -1,29 +1,15 @@
-// DiffBlock: the inline-diff surface for a file mutation (write/edit) — a copy
-// control over one or more per-file hunks, each a bold path header followed by
-// the removed block (`-`, error color) and the added block (`+`, success
-// color), with a dim `└ +A -R · N file(s)` footer. Unlike the TUI's exact
-// changed-row comparison, this block renders the old and new sides in full.
-// Both front ends share the line-terminator rule and distinct-path file count.
-// Output never soft-wraps — an aligned source line keeps its indentation and
-// scrolls horizontally instead of folding. Colors resolve through --dsw-*
-// tokens; geometry mirrors CodeBlock.
-
 import { useCallback, useMemo, useState } from 'react'
 import clsx from 'clsx'
+import { FoldToggle } from './FoldToggle.tsx'
 import { writeClipboard } from './clipboard.ts'
 import css from './DiffBlock.module.css'
 
-/**
- * Output lines shown before the height cap collapses the middle. Matches
- * {@link DEFAULT_TERMINAL_MAX_LINES} so a diff card and a terminal card cut a
- * long body at the same place.
- */
+/** Output lines shown before the height cap collapses the middle. */
 export const DEFAULT_DIFF_MAX_LINES = 16
 
 /**
- * One file's change, in the shape {@link DiffBlock} draws. Structurally the
- * render-intent contract's `FileDiff`, redeclared here so this primitive stays
- * free of the tool contract (the terminal card's decoupling, applied to diffs).
+ * One file change in the form {@link DiffBlock} renders. It is declared here
+ * so this primitive stays independent of the tool contract.
  */
 export interface DiffHunk {
   /** The changed file's path, drawn verbatim as the hunk's header (the tool's model-facing path). */
@@ -34,45 +20,26 @@ export interface DiffHunk {
   newText: string
 }
 
-/**
- * Display copy for the diff surface; the owner passes localized labels
- * (this package is cordis-free, so copy arrives via props). Every field
- * defaults to the current built-in value, so existing consumers render
- * unchanged.
- */
-export interface DiffBlockLabels {
-  /** Copy-button idle label. */
-  copy: string
-  /** Copy-button label during the post-copy confirmation window. */
-  copied: string
-  /** Collapse-toggle aria label while expanded. */
-  collapseAria: string
-  /** Collapse-toggle text while expanded. */
-  collapse: string
-  /** Expand-toggle aria label while capped, given the hidden line count. */
-  expandAria: (hidden: number) => string
-  /** Expand-toggle text while capped, given the hidden line count. */
-  expand: (hidden: number) => string
-}
-
-const DEFAULT_LABELS: DiffBlockLabels = {
-  copy: '复制',
-  copied: '复制成功',
-  collapseAria: '收起差异',
-  collapse: '收起',
-  expandAria: hidden => `展开其余 ${hidden} 行差异`,
-  expand: hidden => `… 其余 ${hidden} 行`,
-}
-
 export interface DiffBlockProps {
   /** One entry per applied hunk, in file order; empty renders nothing. */
   diffs: DiffHunk[]
+  /** Localized chrome supplied by the owning render site. */
+  labels: DiffBlockLabels
   /** Height cap in body lines before the middle collapses (default {@link DEFAULT_DIFF_MAX_LINES}). */
   maxLines?: number | undefined
   /** Extra class merged onto the wrapper (callers position; this component draws). */
   className?: string | undefined
-  /** Localized display copy; omitted fields keep the built-in defaults. */
-  labels?: Partial<DiffBlockLabels> | undefined
+}
+
+/** Localized chrome for {@link DiffBlock}. */
+export interface DiffBlockLabels {
+  copy: string
+  copied: string
+  collapseAria: string
+  expandAria: (hidden: number) => string
+  collapse: string
+  expand: (hidden: number) => string
+  files: (count: number) => string
 }
 
 /** A single rendered body line and its role, so the height cap slices a flat list. */
@@ -170,11 +137,7 @@ function copyText(rows: DiffRow[]): string {
  * @param props - see {@link DiffBlockProps}.
  * @returns the diff block element.
  */
-export function DiffBlock({ diffs, maxLines = DEFAULT_DIFF_MAX_LINES, className, labels }: DiffBlockProps) {
-  const copy = useMemo<DiffBlockLabels>(
-    () => (labels === undefined ? DEFAULT_LABELS : { ...DEFAULT_LABELS, ...labels }),
-    [labels],
-  )
+export function DiffBlock({ diffs, labels, maxLines = DEFAULT_DIFF_MAX_LINES, className }: DiffBlockProps) {
   const { rows, added, removed, files } = useMemo(() => buildRows(diffs), [diffs])
   const [expanded, setExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -204,28 +167,26 @@ export function DiffBlock({ diffs, maxLines = DEFAULT_DIFF_MAX_LINES, className,
   return (
     <div className={clsx(css.block, className)} data-diff="">
       <button type="button" className={css.copyButton} onClick={onCopy}>
-        {copied ? copy.copied : copy.copy}
+        {copied ? labels.copied : labels.copy}
       </button>
       <div className={css.body}>
         {head.map((row, index) => (
           <div key={index} className={clsx(css.line, ROW_CLASS[row.kind])}>{row.text}</div>
         ))}
         {hidden > 0 && (
-          <button
-            type="button"
+          <FoldToggle
             className={css.expand}
-            aria-expanded={expanded}
-            aria-label={expanded ? copy.collapseAria : copy.expandAria(hidden)}
-            onClick={onToggle}
-          >
-            {expanded ? copy.collapse : copy.expand(hidden)}
-          </button>
+            expanded={expanded}
+            hidden={hidden}
+            labels={labels}
+            onToggle={onToggle}
+          />
         )}
         {tail.map((row, index) => (
           <div key={index} className={clsx(css.line, ROW_CLASS[row.kind])}>{row.text}</div>
         ))}
       </div>
-      <div className={css.footer}>└ +{added} -{removed} · {files} file{files === 1 ? '' : 's'}</div>
+      <div className={css.footer}>└ +{added} -{removed} · {labels.files(files)}</div>
     </div>
   )
 }

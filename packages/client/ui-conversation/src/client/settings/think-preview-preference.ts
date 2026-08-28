@@ -4,8 +4,9 @@
  * presentation consumer of the published value.
  */
 import {
-  createSnapshotStore, type SettingsScope, type SnapshotStore,
-} from '@deepseek-ai/dsh-client-runtime/client'
+  createSnapshotStore, type SnapshotStore,
+} from '@deepseek-ai/dsh-client-store'
+import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
   COLLAPSED_THINK_PREVIEW_FIELD, DEFAULT_COLLAPSED_THINK_PREVIEW,
 } from '../../submission-settings.ts'
@@ -14,8 +15,7 @@ import type { CollapsedThinkPreview, ConversationSettings } from '../../submissi
 export { DEFAULT_COLLAPSED_THINK_PREVIEW } from '../../submission-settings.ts'
 
 /**
- * Durable collapsed-Think preview mode used by the General Settings row and
- * the assistant chat-node inject face.
+ * Durable collapsed-Think preview mode used by the General Settings row.
  */
 export class ThinkPreviewPreference {
   /** Reactive preference source for Settings and the Think row. */

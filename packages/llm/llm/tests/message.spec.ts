@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  CallId,
+  ToolCallId,
   createAssistantMessage,
   createToolResultMessage,
   createUserMessage,
@@ -76,7 +76,7 @@ describe('message construction', () => {
   })
 
   it('couples tool-result content and its cited call seq to one call identity', () => {
-    const callId = CallId('call-1')
+    const callId = ToolCallId('call-1')
     const message = createToolResultMessage({
       callId,
       content: [{ type: 'text', text: 'result' }],
@@ -106,7 +106,7 @@ describe('startsPostTokenIdle', () => {
     expect(startsPostTokenIdle({
       type: 'tool-call-delta',
       index: 0,
-      id: CallId('c1'),
+      id: ToolCallId('c1'),
       argumentsDelta: '',
     })).toBe(false)
     expect(startsPostTokenIdle({
@@ -127,7 +127,7 @@ describe('startsPostTokenIdle', () => {
     expect(startsPostTokenIdle({
       type: 'tool-call-delta',
       index: 0,
-      id: CallId('c1'),
+      id: ToolCallId('c1'),
       name: 'write',
       argumentsDelta: '{"path"',
     })).toBe(true)
@@ -137,7 +137,7 @@ describe('startsPostTokenIdle', () => {
     expect(startsPostTokenIdle({
       type: 'tool-call-delta',
       index: 0,
-      id: CallId('c1'),
+      id: ToolCallId('c1'),
       name: 'write',
       argumentsDelta: '',
     })).toBe(false)

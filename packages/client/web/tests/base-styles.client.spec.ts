@@ -17,14 +17,34 @@ function importOrder(css: string): string[] {
   return [...css.matchAll(/@import\s+['"]([^'"]+)['"]/g)].map(([, specifier = '']) => specifier)
 }
 
+const imports = importOrder(baseCss)
+const normalizedCss = baseCss
+  .replaceAll(/\/\*[\s\S]*?\*\//g, '')
+  .replaceAll(/\s+/g, ' ')
+const literalContentSelectors = [
+  'code',
+  'pre',
+  '[data-diff]',
+  '[data-read]',
+  '[data-search]',
+  '[data-terminal]',
+]
+
 describe('web shell base.css', () => {
   it('leaves theme styles to the dynamic ui-theme client entry', () => {
-    expect(importOrder(baseCss)).toEqual([])
+    expect(imports).toEqual([])
     expect(baseCss).not.toContain(THEME_PACKAGE)
   })
 
   it('loads DshCjk faces through a JS import so tsdown emits the sheet into lib/', () => {
     expect(bootTs).toMatch(/import '\.\/cjk-faces\.css'/)
     expect(bootTs.indexOf("import './cjk-faces.css'")).toBeLessThan(bootTs.indexOf("import './base.css'"))
+  })
+
+  it('auto-spaces prose while preserving literal content', () => {
+    expect(baseCss).toMatch(/body\s*\{[^}]*text-autospace:\s*normal;/)
+    expect(normalizedCss).toContain(
+      `${literalContentSelectors.join(', ')} { text-autospace: no-autospace; }`,
+    )
   })
 })

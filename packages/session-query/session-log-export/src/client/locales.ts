@@ -3,6 +3,7 @@ export const NS = 'session-log-download'
 
 /** Simplified-Chinese Session export strings. */
 export const zh = {
+  'header.action': 'Session 日志',
   'dialog.preparingTitle': '正在导出 Session',
   'dialog.preparingDescription': '正在准备包含当前 Session、子 Session 和附件的 ZIP 文件。',
   'dialog.successTitle': 'Session 导出已开始下载',
@@ -15,6 +16,7 @@ export const zh = {
 
 /** Traditional Chinese dictionary, checked complete against the zh key set. */
 export const zhHant = {
+  'header.action': 'Session 日誌',
   'dialog.preparingTitle': '正在導出 Session',
   'dialog.preparingDescription': '正在準備包含當前 Session、子 Session 和附件的 ZIP 檔案。',
   'dialog.successTitle': 'Session 導出已開始下載',
@@ -22,10 +24,11 @@ export const zhHant = {
   'dialog.errorTitle': 'Session 導出失敗',
   'dialog.close': '關閉',
   'dialog.commandFailed': '無法啟動 Session 導出。',
-}
+} satisfies Record<keyof typeof zh, string>
 
 /** English Session export strings. */
 export const en: Record<keyof typeof zh, string> = {
+  'header.action': 'Session log',
   'dialog.preparingTitle': 'Exporting Session',
   'dialog.preparingDescription': 'Preparing a ZIP containing this Session, its sub-Sessions, and attachments.',
   'dialog.successTitle': 'Session download started',
