@@ -182,6 +182,8 @@ export interface PiImageRequestContext {
   resolveImageAccess: ImageAttachmentAccessResolver
   /** Request-level bound on base64-encoded image payload; omission leaves every image in place. */
   maxRequestImageBytes?: number
+  /** Represented images kept for one request; omission leaves the count unbounded. */
+  maxImages?: number
   /** Route pixel and raw encoded-byte budgets. */
   requestImagePolicy?: ImageRequestPolicy
 }
@@ -202,9 +204,10 @@ export function toPiContext(
 /**
  * Convert harness history to a pi-ai Context while resolving durable images.
  * Tool result names are recovered from preceding assistant tool calls. When
- * the accumulated base64 image payload exceeds `maxRequestImageBytes`, the
- * oldest images are replaced by text placeholders until the request fits, so
- * an image-heavy session keeps clearing gateway request-size caps.
+ * the accumulated base64 image payload exceeds `maxRequestImageBytes`, or a
+ * named `maxImages` count is exceeded, the oldest images are replaced by text
+ * placeholders until the request fits, so an image-heavy session keeps
+ * clearing gateway request-size and per-prompt image caps.
  * @param options - the harness request; `options.system` maps to pi-ai's single `systemPrompt` slot.
  * @param images - attachment provider, current path resolver, and request limits.
  * @param onReplayDegrade - forwarded to {@link toPiAssistant} for each assistant message.
@@ -230,15 +233,17 @@ async function toPiContextWithImages(
   images: PiImageRequestContext,
   onReplayDegrade?: (reason: string) => void,
 ): Promise<PiContext> {
-  const { attachments, resolveImageAccess, maxRequestImageBytes } = images
+  const { attachments, resolveImageAccess, maxRequestImageBytes, maxImages } = images
   const requestImagePolicy = images.requestImagePolicy ?? {
     maxPixels: DEFAULT_REQUEST_IMAGE_PIXEL_BUDGET,
     maxBytes: DEFAULT_REQUEST_IMAGE_MAX_BYTES,
   }
   assertSupportedImageRoles(options.messages)
+  const countBound = maxImages === undefined ? {} : { maxImages }
   const requestMessages = offloadRequestImagesWithPolicy(options.messages, {
     representation: 'base64',
     ...maxRequestImageBytes === undefined ? {} : { maxBytes: maxRequestImageBytes },
+    ...countBound,
     byteQuantum: 1,
     byteLength: ref => Math.min(ref.bytes, requestImagePolicy.maxBytes),
     placeholder: ref => offloadedImageText(ref, resolveImageAccess(ref)),
@@ -247,6 +252,7 @@ async function toPiContextWithImages(
   const exactMessages = offloadRequestImagesWithPolicy(requestMessages, {
     representation: 'base64',
     ...maxRequestImageBytes === undefined ? {} : { maxBytes: maxRequestImageBytes },
+    ...countBound,
     byteQuantum: 1,
     byteLength: ref => (requestImages.get(ref.attachmentId) as RequestImageAttachment).bytes,
     placeholder: ref => offloadedImageText(ref, resolveImageAccess(ref)),

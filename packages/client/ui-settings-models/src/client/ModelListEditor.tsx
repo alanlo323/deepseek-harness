@@ -18,7 +18,7 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { LlmDiscoveredModel } from '@deepseek-ai/dsh-api-remotes/client'
 import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
-import { formatCapacity, parseCapacity } from './DeepSeekModelsEditor.tsx'
+import { formatCapacity, parseCapacity, parseImageCount } from './DeepSeekModelsEditor.tsx'
 import type { DeepSeekModelDraft } from './DeepSeekModelsEditor.tsx'
 import { messageOf, type ModelsWire } from './store.ts'
 import type { en } from './locales.ts'
@@ -113,6 +113,9 @@ function IconTrash(): ReactNode {
 
 /** The two token counts edited as K/M-suffixed text behind a row's disclosure. */
 type CapacityField = 'contextWindow' | 'maxTokens'
+/** The represented-image count edited as a plain integer behind the same disclosure. */
+type ImageCountField = 'maxImagesPerRequest'
+type AdvancedField = CapacityField | ImageCountField
 
 /**
  * What an empty capacity field is worth, shown as its placeholder so a row left
@@ -163,7 +166,7 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
   const [candidates, setCandidates] = useState<readonly LlmDiscoveredModel[] | undefined>(undefined)
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set())
   // Rows carry an id and a name; capacities are the exception, so they stay
-  // folded until asked for rather than crowding every row with four inputs.
+  // folded until asked for rather than crowding every row with extra inputs.
   const [expanded, setExpanded] = useState<ReadonlySet<number>>(new Set())
   // Capacities are edited as text, so a field's keystrokes are held here rather
   // than re-derived from the parsed count on every change — that would rewrite
@@ -174,16 +177,27 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
   const [editing, setEditing] = useState<ReadonlyMap<string, string>>(new Map())
 
   /** Buffer key for one capacity field; the row half moves when rows do. */
-  const bufferKey = (index: number, field: CapacityField): string => `${String(index)}:${field}`
+  const bufferKey = (index: number, field: AdvancedField): string => `${String(index)}:${field}`
 
   const editCapacity = (index: number, field: CapacityField, text: string): void => {
     setEditing(current => new Map(current).set(bufferKey(index, field), text))
     patch(index, { [field]: parseCapacity(text) })
   }
 
+  const editImageCount = (index: number, text: string): void => {
+    setEditing(current => new Map(current).set(bufferKey(index, 'maxImagesPerRequest'), text))
+    patch(index, { maxImagesPerRequest: parseImageCount(text) })
+  }
+
   /** What a capacity field shows: the buffer while typing, else the stored count. */
   const capacityText = (model: ModelDraft, index: number, field: CapacityField): string =>
     editing.get(bufferKey(index, field)) ?? capacitySpelling(numberOf(model, field))
+
+  const imageCountText = (model: ModelDraft, index: number): string =>
+    editing.get(bufferKey(index, 'maxImagesPerRequest'))
+    ?? (numberOf(model, 'maxImagesPerRequest') === undefined
+      ? ''
+      : String(numberOf(model, 'maxImagesPerRequest')))
 
   /** Drop one row's entries and shift the rows after it down, in one pass. */
   const reindexOnRemove = (
@@ -424,6 +438,19 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
                     aria-label={`${t('modelMaxTokens')} ${index + 1}`}
                     disabled={disabled}
                     onChange={(event) => { editCapacity(index, 'maxTokens', event.target.value) }}
+                  />
+                </label>
+                <label className={styles['modelField']}>
+                  <span className={styles['modelFieldLabel']}>{t('modelMaxImagesPerRequest')}</span>
+                  <input
+                    className={styles['input']}
+                    type="text"
+                    inputMode="numeric"
+                    value={imageCountText(model, index)}
+                    placeholder={t('maxImagesPerRequestPlaceholder')}
+                    aria-label={`${t('modelMaxImagesPerRequest')} ${index + 1}`}
+                    disabled={disabled}
+                    onChange={(event) => { editImageCount(index, event.target.value) }}
                   />
                 </label>
               </div>

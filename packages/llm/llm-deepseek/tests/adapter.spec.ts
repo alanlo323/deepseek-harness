@@ -21,7 +21,7 @@ import DeepSeekLlmApiExtensionRegistry from '@deepseek-ai/dsh-deepseek-llm-api-e
 import type { PreparedDeepSeekLlmApiExtensions } from '@deepseek-ai/dsh-deepseek-llm-api-extensions'
 import * as LlmDeepSeek from '@deepseek-ai/dsh-llm-deepseek'
 import { DeepSeekAdapter, resolveAdapterOptions } from '@deepseek-ai/dsh-llm-deepseek'
-import { httpErrorCode } from '../src/adapter.ts'
+import { httpErrorCode, promptImageLimit } from '../src/adapter.ts'
 import { resolveRequestImagePolicy } from '../src/request-pricing.ts'
 import { assemble } from './assemble.ts'
 import { closeMockServers, mockServer, textEvents } from './mock-server.ts'
@@ -590,6 +590,288 @@ describe('DeepSeekAdapter against a mock server', () => {
     expect(server.requests).toHaveLength(1)
     expect(JSON.stringify(server.requests[0])).toContain('file-api-ready')
     expect(JSON.stringify(server.requests[0])).not.toContain('image_url')
+  })
+
+  it('retries once after a per-prompt image cap by keeping the newest tool-result image', async () => {
+    const promptCap = JSON.stringify({
+      error: {
+        message: 'At most 1 image(s) may be provided in one prompt. (parameter=image)',
+        type: 'BadRequestError',
+        param: 'image',
+        code: 400,
+      },
+    })
+    const server = await mockServer([
+      { kind: 'http-error', status: 400, body: promptCap },
+      { kind: 'sse', events: textEvents },
+    ])
+    const secondRef = { ...imageRef, attachmentId: AttachmentId(`sha256:${'c'.repeat(64)}`) }
+    const attachments = attachmentStoreOf(ref => Promise.resolve({
+      ...requestImage(ref),
+      variantId: ImageVariantId(`sha256:${(ref.attachmentId === imageRef.attachmentId ? 'b' : 'd').repeat(64)}`),
+    })).store
+    const files = fileStoreOf(version => Promise.resolve(fileReference(
+      version.attachment.attachmentId === imageRef.attachmentId ? 'file-api-old' : 'file-api-new',
+    )))
+    const adapter = adapterOf({
+      baseURL: server.url,
+      models: [{ id: 'deepseek-v4-flash-vision-exp', inputModalities: ['text', 'image'] }],
+    }, attachments, files.store)
+
+    await drain(adapter.stream({
+      provider: 'deepseek-official',
+      model: 'deepseek-v4-flash-vision-exp',
+      messages: [createUserMessage({
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: ToolCallId('first'),
+            content: [{ type: 'image', attachment: imageRef }],
+          },
+          {
+            type: 'tool-result',
+            toolCallId: ToolCallId('second'),
+            content: [{ type: 'image', attachment: secondRef }],
+          },
+        ],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    }))
+
+    expect(server.requests).toHaveLength(2)
+    expect(JSON.stringify(server.requests[0]).match(/"file_id":"file-api-/g)).toHaveLength(2)
+    expect(JSON.stringify(server.requests[1])).toContain('file-api-new')
+    expect(JSON.stringify(server.requests[1])).not.toContain('file-api-old')
+    expect(JSON.stringify(server.requests[1])).toContain('image omitted to fit request image limits')
+    expect(JSON.stringify(server.requests[1]).match(/"file_id":"file-api-/g)).toHaveLength(1)
+  })
+
+  it('retries a per-prompt image cap from a top-level OpenAI error object', async () => {
+    const promptCap = JSON.stringify({
+      message: 'At most 1 image(s) may be provided in one prompt. (parameter=image)',
+      type: 'BadRequestError',
+      param: 'image',
+      code: 400,
+    })
+    const server = await mockServer([
+      { kind: 'http-error', status: 400, body: promptCap },
+      { kind: 'sse', events: textEvents },
+    ])
+    const secondRef = { ...imageRef, attachmentId: AttachmentId(`sha256:${'c'.repeat(64)}`) }
+    const attachments = attachmentStoreOf(ref => Promise.resolve({
+      ...requestImage(ref),
+      variantId: ImageVariantId(`sha256:${(ref.attachmentId === imageRef.attachmentId ? 'b' : 'd').repeat(64)}`),
+    })).store
+    const files = fileStoreOf(version => Promise.resolve(fileReference(
+      version.attachment.attachmentId === imageRef.attachmentId ? 'file-api-old' : 'file-api-new',
+    )))
+    const adapter = adapterOf({
+      baseURL: server.url,
+      models: [{ id: 'deepseek-v4-flash-vision-exp', inputModalities: ['text', 'image'] }],
+    }, attachments, files.store)
+
+    await drain(adapter.stream({
+      provider: 'deepseek-official',
+      model: 'deepseek-v4-flash-vision-exp',
+      messages: [createUserMessage({
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: ToolCallId('first'),
+            content: [{ type: 'image', attachment: imageRef }],
+          },
+          {
+            type: 'tool-result',
+            toolCallId: ToolCallId('second'),
+            content: [{ type: 'image', attachment: secondRef }],
+          },
+        ],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    }))
+
+    expect(server.requests).toHaveLength(2)
+    expect(JSON.stringify(server.requests[1])).toContain('file-api-new')
+    expect(JSON.stringify(server.requests[1])).not.toContain('file-api-old')
+    expect(JSON.stringify(server.requests[1]).match(/"file_id":"file-api-/g)).toHaveLength(1)
+  })
+
+  it('retries a per-prompt image cap wrapped as a 400 JSON message', async () => {
+    const promptCap = JSON.stringify({
+      error: {
+        message: '400: {"message":"At most 1 image(s) may be provided in one prompt. (parameter=image)","type":"BadRequestError","param":"image","code":400}',
+      },
+    })
+    const server = await mockServer([
+      { kind: 'http-error', status: 400, body: promptCap },
+      { kind: 'sse', events: textEvents },
+    ])
+    const secondRef = { ...imageRef, attachmentId: AttachmentId(`sha256:${'c'.repeat(64)}`) }
+    const attachments = attachmentStoreOf(ref => Promise.resolve({
+      ...requestImage(ref),
+      variantId: ImageVariantId(`sha256:${(ref.attachmentId === imageRef.attachmentId ? 'b' : 'd').repeat(64)}`),
+    })).store
+    const files = fileStoreOf(version => Promise.resolve(fileReference(
+      version.attachment.attachmentId === imageRef.attachmentId ? 'file-api-old' : 'file-api-new',
+    )))
+    const adapter = adapterOf({
+      baseURL: server.url,
+      models: [{ id: 'deepseek-v4-flash-vision-exp', inputModalities: ['text', 'image'] }],
+    }, attachments, files.store)
+
+    await drain(adapter.stream({
+      provider: 'deepseek-official',
+      model: 'deepseek-v4-flash-vision-exp',
+      messages: [createUserMessage({
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: ToolCallId('first'),
+            content: [{ type: 'image', attachment: imageRef }],
+          },
+          {
+            type: 'tool-result',
+            toolCallId: ToolCallId('second'),
+            content: [{ type: 'image', attachment: secondRef }],
+          },
+        ],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    }))
+
+    expect(server.requests).toHaveLength(2)
+    expect(JSON.stringify(server.requests[1]).match(/"file_id":"file-api-/g)).toHaveLength(1)
+  })
+
+  it('projects the experimental vision catalog to one image before the first chat', async () => {
+    const server = await mockServer([{ kind: 'sse', events: textEvents }])
+    const secondRef = { ...imageRef, attachmentId: AttachmentId(`sha256:${'c'.repeat(64)}`) }
+    const attachments = attachmentStoreOf(ref => Promise.resolve({
+      ...requestImage(ref),
+      variantId: ImageVariantId(`sha256:${(ref.attachmentId === imageRef.attachmentId ? 'b' : 'd').repeat(64)}`),
+    })).store
+    const files = fileStoreOf(version => Promise.resolve(fileReference(
+      version.attachment.attachmentId === imageRef.attachmentId ? 'file-api-old' : 'file-api-new',
+    )))
+    const adapter = adapterOf({
+      baseURL: server.url,
+    }, attachments, files.store)
+
+    await drain(adapter.stream({
+      provider: 'deepseek-official',
+      model: 'deepseek-v4-flash-vision-exp',
+      messages: [createUserMessage({
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: ToolCallId('first'),
+            content: [{ type: 'image', attachment: imageRef }],
+          },
+          {
+            type: 'tool-result',
+            toolCallId: ToolCallId('second'),
+            content: [{ type: 'image', attachment: secondRef }],
+          },
+        ],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    }))
+
+    expect(server.requests).toHaveLength(1)
+    expect(JSON.stringify(server.requests[0])).toContain('file-api-new')
+    expect(JSON.stringify(server.requests[0])).not.toContain('file-api-old')
+    expect(JSON.stringify(server.requests[0]).match(/"file_id":"file-api-/g)).toHaveLength(1)
+    expect(JSON.stringify(server.requests[0])).toContain('image omitted to fit request image limits')
+  })
+
+  it('does not retry a per-prompt image cap when the wire already fits', async () => {
+    const server = await mockServer([{
+      kind: 'http-error',
+      status: 400,
+      body: JSON.stringify({
+        error: { message: 'At most 1 image(s) may be provided in one prompt. (parameter=image)' },
+      }),
+    }])
+    const attachments = attachmentStoreOf(ref => Promise.resolve(requestImage(ref))).store
+    const adapter = adapterOf({
+      baseURL: server.url,
+      models: [{ id: 'deepseek-v4-flash-vision-exp', inputModalities: ['text', 'image'] }],
+    }, attachments, fileStoreOf(() => Promise.resolve(fileReference('file-api-1'))).store)
+
+    await expect(drain(adapter.stream({
+      provider: 'deepseek-official',
+      model: 'deepseek-v4-flash-vision-exp',
+      messages: [createUserMessage({
+        content: [{ type: 'image', attachment: imageRef }],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    }))).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+
+    expect(server.requests).toHaveLength(1)
+  })
+
+  it('does not retry a generic image 400 as a prompt-image cap', async () => {
+    const server = await mockServer([{
+      kind: 'http-error',
+      status: 400,
+      body: JSON.stringify({ error: { message: 'invalid request: extra field' } }),
+    }])
+    const secondRef = { ...imageRef, attachmentId: AttachmentId(`sha256:${'c'.repeat(64)}`) }
+    const attachments = attachmentStoreOf(ref => Promise.resolve(requestImage(ref))).store
+    const adapter = adapterOf({
+      baseURL: server.url,
+      models: [{ id: 'deepseek-v4-flash-vision-exp', inputModalities: ['text', 'image'] }],
+    }, attachments, fileStoreOf(() => Promise.resolve(fileReference('file-api-1'))).store)
+
+    await expect(drain(adapter.stream({
+      provider: 'deepseek-official',
+      model: 'deepseek-v4-flash-vision-exp',
+      messages: [createUserMessage({
+        content: [
+          { type: 'image', attachment: imageRef },
+          { type: 'image', attachment: secondRef },
+        ],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    }))).rejects.toMatchObject({ code: 'INVALID_REQUEST', message: 'invalid request: extra field' })
+
+    expect(server.requests).toHaveLength(1)
+  })
+
+  it('does not loop when a recovered prompt-image-cap request is refused again', async () => {
+    const promptCap = JSON.stringify({
+      error: { message: 'At most 1 image(s) may be provided in one request.' },
+    })
+    const server = await mockServer([
+      { kind: 'http-error', status: 400, body: promptCap },
+      { kind: 'http-error', status: 400, body: promptCap },
+    ])
+    const secondRef = { ...imageRef, attachmentId: AttachmentId(`sha256:${'c'.repeat(64)}`) }
+    const attachments = attachmentStoreOf(ref => Promise.resolve({
+      ...requestImage(ref),
+      variantId: ImageVariantId(`sha256:${(ref.attachmentId === imageRef.attachmentId ? 'b' : 'd').repeat(64)}`),
+    })).store
+    const adapter = adapterOf({
+      baseURL: server.url,
+      models: [{ id: 'deepseek-v4-flash-vision-exp', inputModalities: ['text', 'image'] }],
+    }, attachments, fileStoreOf(version => Promise.resolve(fileReference(
+      version.attachment.attachmentId === imageRef.attachmentId ? 'file-api-old' : 'file-api-new',
+    ))).store)
+
+    await expect(drain(adapter.stream({
+      provider: 'deepseek-official',
+      model: 'deepseek-v4-flash-vision-exp',
+      messages: [createUserMessage({
+        content: [
+          { type: 'image', attachment: imageRef },
+          { type: 'image', attachment: secondRef },
+        ],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    }))).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+
+    expect(server.requests).toHaveLength(2)
+    expect(JSON.stringify(server.requests[1]).match(/"file_id":"file-api-/g)).toHaveLength(1)
   })
 
   it('does not prepare an old image removed by request offload', async () => {
@@ -1422,6 +1704,22 @@ describe('DeepSeekAdapter against a mock server', () => {
     expect(httpErrorCode(413, { code: 'context_length_exceeded' })).toBe('INVALID_REQUEST')
   })
 
+  it('reads a provider per-prompt image cap from OpenAI-compatible 400 wording', () => {
+    expect(promptImageLimit(
+      'At most 1 image(s) may be provided in one prompt. (parameter=image)',
+    )).toBe(1)
+    expect(promptImageLimit('At most 0 image(s) may be provided in one request.')).toBe(0)
+    expect(promptImageLimit('At most 12 image(s) may be provided in one prompt')).toBe(12)
+    expect(promptImageLimit('At most 9007199254740993 image(s) may be provided in one prompt')).toBeUndefined()
+    expect(promptImageLimit('invalid image media type')).toBeUndefined()
+    expect(promptImageLimit(
+      '{"message":"At most 1 image(s) may be provided in one prompt. (parameter=image)","type":"BadRequestError","param":"image","code":400}',
+    )).toBe(1)
+    expect(promptImageLimit(
+      '400: {"message":"At most 1 image(s) may be provided in one prompt. (parameter=image)","type":"BadRequestError","param":"image","code":400}',
+    )).toBe(1)
+  })
+
   it('distinguishes terminal quota exhaustion from transient HTTP 429 throttling', () => {
     expect(httpErrorCode(429, { code: 'insufficient_quota', message: 'account credits exhausted' }))
       .toBe(QUOTA_EXCEEDED_CODE)
@@ -1791,6 +2089,7 @@ describe('plugin registration and config', () => {
   it('keeps wire helpers off the package root', () => {
     for (const helper of [
       'httpErrorCode',
+      'promptImageLimit',
       'serializeMessages',
       'serializeRequest',
       'DONE',
@@ -2130,6 +2429,9 @@ describe('plugin registration and config', () => {
     expect(() => resolveAdapterOptions({
       models: [{ id: 'text-only', inputModalities: ['text'], imagePixelBudget: 1 }],
     })).toThrow(/text-only catalog model .* cannot declare image request limits/)
+    expect(() => resolveAdapterOptions({
+      models: [{ id: 'text-only', inputModalities: ['text'], maxImagesPerRequest: 1 }],
+    })).toThrow(/text-only catalog model .* cannot declare image request limits/)
   })
 
   it.each([
@@ -2138,6 +2440,8 @@ describe('plugin registration and config', () => {
     ['imagePixelBudget', 'auto', /imagePixelBudget must be "low" or a positive safe integer/],
     ['imageMaxBytes', 0, /imageMaxBytes must be a positive safe integer/],
     ['imageMaxBytes', 1.5, /imageMaxBytes must be a positive safe integer/],
+    ['maxImagesPerRequest', 0, /maxImagesPerRequest must be a positive safe integer/],
+    ['maxImagesPerRequest', 1.5, /maxImagesPerRequest must be a positive safe integer/],
   ] as const)('rejects per-model %s=%s', (field, value, message) => {
     expect(() => resolveAdapterOptions({
       models: [{ id: 'vision', inputModalities: ['image'], [field]: value }],

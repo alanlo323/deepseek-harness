@@ -484,7 +484,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/code-runtime/code-runtime-worker-thread/src/index.ts:25`](../packages/code-runtime/code-runtime-worker-thread/src/index.ts)
+来源：[`packages/code-runtime/code-runtime-worker-thread/src/index.ts:26`](../packages/code-runtime/code-runtime-worker-thread/src/index.ts)
 
 <a id="deepseek-aidsh-compaction-basic"></a>
 
@@ -989,7 +989,12 @@ export interface Config {
   defaultContextWindow?: number
   /** Advisory models shown by discovery consumers; defaults to V4 Flash, V4 Pro, and V4 Flash Vision Exp. */
   models?: DeepSeekCatalogModel[]
-  /** Maximum provider idle time while one stream read is outstanding (default five minutes). */
+  /**
+   * Maximum idle interval between outstanding stream reads after the first
+   * non-empty text, reasoning, or tool-call argument delta (default five
+   * minutes). Prefill and a tool-call header with empty arguments are not
+   * capped.
+   */
   streamIdleTimeoutMs?: number
   /** Maximum accumulated file-referenced image bytes per chat request (default 128 MiB). */
   maxRequestFilesBytes?: number
@@ -1033,12 +1038,17 @@ export interface DeepSeekCatalogModel {
   imagePixelBudget?: number | 'low'
   /** Encoded-byte target for one deterministic request preview; the smallest quality-ladder output is used when no quality fits. */
   imageMaxBytes?: number
+  /**
+   * Represented images kept for one request to this model; omission uses
+   * {@link DeepSeekConnectionOptions.maxImagesPerRequest}.
+   */
+  maxImagesPerRequest?: number
 }
 ```
 
 依赖：[`ModelModality`](../packages/llm/llm/src/index.ts) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
 
-来源：[`packages/llm/llm-deepseek/src/index.ts:107`](../packages/llm/llm-deepseek/src/index.ts)
+来源：[`packages/llm/llm-deepseek/src/index.ts:125`](../packages/llm/llm-deepseek/src/index.ts)
 
 <a id="deepseek-aidsh-llm-pi-ai"></a>
 
@@ -1131,7 +1141,11 @@ export interface PiAiProviderProfile {
   timeoutMs?: number
   /** WebSocket connection timeout in milliseconds. */
   websocketConnectTimeoutMs?: number
-  /** Maximum provider idle time while one stream read is outstanding. */
+  /**
+   * Maximum idle interval between outstanding stream reads after the first
+   * non-empty text, reasoning, or tool-call argument delta. Prefill and a
+   * tool-call header with empty arguments are not capped.
+   */
   streamIdleTimeoutMs?: number
   /**
    * Maximum base64-encoded image payload per request. When a request's
@@ -1186,6 +1200,11 @@ export interface PiAiModelProfile {
    * declares the offered levels and their wire spellings.
    */
   reasoningEfforts?: false | PiAiReasoningEfforts
+  /**
+   * Represented images kept for one request to this model. Omission leaves
+   * the count unbounded until a provider 400 names a tighter cap.
+   */
+  maxImagesPerRequest?: number
   /** pi-ai wire-compatibility switches for this model, winning over the route's per field; one its protocol does not declare is refused. */
   compat?: PiAiCompatProfile
 }
@@ -1304,7 +1323,7 @@ export type PiAiThinkingFormat = NonNullable<OpenAICompletionsCompat['thinkingFo
 
 依赖：`Api`（`@earendil-works/pi-ai`）· `CacheRetention`（`@earendil-works/pi-ai`）· `Model`（`@earendil-works/pi-ai`）· `ModelThinkingLevel`（`@earendil-works/pi-ai`）· `OpenAICompletionsCompat`（`@earendil-works/pi-ai`）· [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts) · `ThinkingBudgets`（`@earendil-works/pi-ai`）· `Transport`（`@earendil-works/pi-ai`)
 
-来源：[`packages/llm/llm-pi-ai/src/config.ts:213`](../packages/llm/llm-pi-ai/src/config.ts)
+来源：[`packages/llm/llm-pi-ai/src/config.ts:229`](../packages/llm/llm-pi-ai/src/config.ts)
 
 <a id="deepseek-aidsh-llm-replay"></a>
 

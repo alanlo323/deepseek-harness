@@ -284,6 +284,35 @@ describe('model list editing', () => {
     expect(mutate).not.toHaveBeenCalled()
   })
 
+  it('stores a per-model image cap', async () => {
+    const { mutate } = await mountSection()
+    openEditor('openai')
+
+    fireEvent.click(screen.getByRole('button', { name: en.addModel }))
+    fireEvent.change(screen.getByLabelText(`${en.modelId} 1`), { target: { value: 'vision' } })
+    expandModel(1)
+    fireEvent.change(screen.getByLabelText(`${en.modelMaxImagesPerRequest} 1`), { target: { value: '1' } })
+    fireEvent.click(screen.getByText(en.apply))
+
+    await waitFor(() => { expect(mutate).toHaveBeenCalled() })
+    expect(firstMutate(mutate).ops[0]?.value).toEqual([{ id: 'vision', maxImagesPerRequest: 1 }])
+  })
+
+  it('refuses to apply while an image cap is unreadable', async () => {
+    const { mutate } = await mountSection()
+    openEditor('openai')
+
+    fireEvent.click(screen.getByRole('button', { name: en.addModel }))
+    fireEvent.change(screen.getByLabelText(`${en.modelId} 1`), { target: { value: 'm' } })
+    expandModel(1)
+    fireEvent.change(screen.getByLabelText(`${en.modelMaxImagesPerRequest} 1`), { target: { value: '1K' } })
+
+    expect(screen.getByLabelText<HTMLInputElement>(`${en.modelMaxImagesPerRequest} 1`).value).toBe('1K')
+    expect(screen.getByText(`${en.model} 1: ${en.modelMaxImagesInvalid}`)).toBeTruthy()
+    expect(buttonNamed(en.apply).disabled).toBe(true)
+    expect(mutate).not.toHaveBeenCalled()
+  })
+
   it('spells a stored capacity back the way it is typed', async () => {
     await mountSection({
       providers: {

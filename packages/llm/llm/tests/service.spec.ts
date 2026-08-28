@@ -7,6 +7,7 @@ import LlmRuntime, {
   HarnessError,
   isContextWindowExceededError,
   isQuotaExceededError,
+  promptImageLimit,
   LlmAdapter,
   LlmError,
   ProviderRequestId,
@@ -127,6 +128,16 @@ describe('LlmRuntime', () => {
     ]) expect(isQuotaExceededError(detail)).toBe(true)
     expect(isQuotaExceededError('HTTP 429: rate limit reached')).toBe(false)
     expect(isQuotaExceededError('quota resets in one minute')).toBe(false)
+  })
+
+  it('reads a provider per-prompt image cap from OpenAI-compatible 400 wording', () => {
+    expect(promptImageLimit(
+      'At most 1 image(s) may be provided in one prompt. (parameter=image)',
+    )).toBe(1)
+    expect(promptImageLimit(
+      '400: {"message":"At most 1 image(s) may be provided in one prompt. (parameter=image)"}',
+    )).toBe(1)
+    expect(promptImageLimit('invalid image media type')).toBeUndefined()
   })
 
   it('errorChain renders the full cause chain of a wrapped transport failure', () => {

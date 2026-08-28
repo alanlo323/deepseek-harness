@@ -17,7 +17,7 @@ import styles from './ModelsSection.module.css'
 export type DeepSeekModelDraft = Record<string, unknown>
 
 /** The catalog fields this editor writes. */
-type CatalogField = 'id' | 'name' | 'contextWindow' | 'maxTokens'
+type CatalogField = 'id' | 'name' | 'contextWindow' | 'maxTokens' | 'maxImagesPerRequest'
 
 /** The two token counts edited as K/M-suffixed text behind a row's disclosure. */
 type CapacityField = 'contextWindow' | 'maxTokens'
@@ -55,6 +55,20 @@ export function parseCapacity(text: string): number | undefined {
 }
 
 /**
+ * Read a typed per-request image count. Unlike {@link parseCapacity}, this is
+ * a plain integer: K/M suffixes are token-count spelling, not image counts.
+ * @param text - raw field text.
+ * @returns the count; `undefined` when blank (no proactive cap), `NaN` when unreadable.
+ */
+export function parseImageCount(text: string): number | undefined {
+  const trimmed = text.trim()
+  if (trimmed.length === 0) return undefined
+  if (!/^\d+$/.test(trimmed)) return Number.NaN
+  const value = Number(trimmed)
+  return Number.isSafeInteger(value) && value > 0 ? value : Number.NaN
+}
+
+/**
  * Spell a stored count back in the shortest form that survives a round trip
  * through {@link parseCapacity}; a count that is not a whole number of
  * thousands stays written out.
@@ -74,7 +88,7 @@ export interface DeepSeekModelsValidationFailure {
   index: number
   /** Message key owned by the Models settings section. */
   key: 'modelIdRequired' | 'modelIdDuplicate' | 'modelNameInvalid' | 'modelContextInvalid'
-  | 'modelMaxTokensInvalid'
+  | 'modelMaxTokensInvalid' | 'modelMaxImagesInvalid'
 }
 
 /** Convert a schema-validated catalog value into records without dropping hidden fields. */
@@ -118,6 +132,13 @@ export function validateDeepSeekModels(value: unknown): DeepSeekModelsValidation
       && (typeof maxTokens !== 'number' || !Number.isInteger(maxTokens) || maxTokens <= 0)) {
       return { index, key: 'modelMaxTokensInvalid' }
     }
+    const maxImagesPerRequest = model['maxImagesPerRequest']
+    if (maxImagesPerRequest !== undefined
+      && (typeof maxImagesPerRequest !== 'number'
+        || !Number.isSafeInteger(maxImagesPerRequest)
+        || maxImagesPerRequest <= 0)) {
+      return { index, key: 'modelMaxImagesInvalid' }
+    }
   }
   return undefined
 }
@@ -132,6 +153,8 @@ export interface DeepSeekModelsEditorProps {
   defaultContextWindow: number | undefined
   /** Fallback output cap used when a row omits its exact value. */
   defaultMaxTokens: number | undefined
+  /** Fallback represented-image count used when a row omits its exact value. */
+  defaultMaxImagesPerRequest: number | undefined
   /** Section copy. */
   t: (key: keyof typeof en) => string
   /** Disable every mutation. */
@@ -218,13 +241,13 @@ export function DeepSeekModelsEditor(props: DeepSeekModelsEditorProps): ReactNod
     return typeof value === 'number' ? formatCapacity(value) : ''
   }
 
-  const settleCapacity = (index: number, field: CapacityField): void => {
+  const settleCapacity = (index: number, field: CapacityField | 'maxImagesPerRequest'): void => {
     const key = `${String(index)}:${field}`
     const typed = editing.get(key)
     if (typed === undefined) return
     // Unreadable text stays on screen: the save-time rejection names a row the
     // user can still see and correct.
-    const parsed = parseCapacity(typed)
+    const parsed = field === 'maxImagesPerRequest' ? parseImageCount(typed) : parseCapacity(typed)
     if (parsed !== undefined && Number.isNaN(parsed)) return
     setEditing((current) => {
       const next = new Map(current)
@@ -261,6 +284,36 @@ export function DeepSeekModelsEditor(props: DeepSeekModelsEditorProps): ReactNod
       />
     </label>
   )
+
+  /** One represented-image count field of one row. */
+  const imageCountField = (model: DeepSeekModelDraft, index: number): ReactNode => {
+    const field = 'maxImagesPerRequest' as const
+    const typed = editing.get(`${String(index)}:${field}`)
+    const stored = model[field]
+    const value = typed ?? (typeof stored === 'number' ? String(stored) : '')
+    return (
+      <label className={styles['modelField']}>
+        <span className={styles['modelFieldLabel']}>{props.t('maxImagesPerRequest')}</span>
+        <input
+          className={styles['input']}
+          type="text"
+          inputMode="numeric"
+          value={value}
+          placeholder={props.defaultMaxImagesPerRequest === undefined
+            ? props.t('maxImagesPerRequestPlaceholder')
+            : String(props.defaultMaxImagesPerRequest)}
+          aria-label={`${props.t('maxImagesPerRequest')} ${String(index + 1)}`}
+          disabled={props.disabled}
+          onChange={(event) => {
+            const text = event.target.value
+            setEditing(current => new Map(current).set(`${String(index)}:${field}`, text))
+            update(index, field, parseImageCount(text))
+          }}
+          onBlur={() => { settleCapacity(index, field) }}
+        />
+      </label>
+    )
+  }
 
   return (
     <section className={styles['modelCatalog']} aria-label={props.t('models')}>
@@ -343,6 +396,7 @@ export function DeepSeekModelsEditor(props: DeepSeekModelsEditorProps): ReactNod
                     <div className={styles['modelAdvanced']}>
                       {capacityField(model, index, 'contextWindow', props.defaultContextWindow)}
                       {capacityField(model, index, 'maxTokens', props.defaultMaxTokens)}
+                      {imageCountField(model, index)}
                     </div>
                   )
                   : null}

@@ -41,12 +41,15 @@ import type {
 import {
   attributionHeaders,
   contentHasImage,
+  errorChain,
   LlmAdapter,
   LlmError,
+  promptImageLimit,
   ReasoningEffortId,
   startsPostTokenIdle,
 } from '@deepseek-ai/dsh-llm'
 import type {
+  ContentBlock,
   GenerateOptions,
   ImageAttachmentAccess,
   LlmModelInfo,
@@ -110,6 +113,19 @@ export interface PiAiAuthInjection {
   credentials: CredentialStore
   /** Ambient lookups a provider performs while resolving its own auth. */
   authContext: AuthContext
+}
+
+/** Count image blocks in request history, including nested tool-result content. */
+function imageOccurrenceCount(messages: GenerateOptions['messages']): number {
+  let count = 0
+  const walk = (content: readonly ContentBlock[]): void => {
+    for (const block of content) {
+      if (block.type === 'image') count += 1
+      else if (block.type === 'tool-result') walk(block.content)
+    }
+  }
+  for (const message of messages) walk(message.content)
+  return count
 }
 
 /** Copy profile stream knobs into pi-ai's common option vocabulary. */
@@ -362,51 +378,87 @@ export class PiAiAdapter extends LlmAdapter {
       const onReplayDegrade = (reason: string): void => {
         this.config.onReplayDegrade?.({ provider: options.provider, model: options.model, reason })
       }
-      const context = attachments === undefined
-        ? toPiContext(options, undefined, onReplayDegrade)
-        : await toPiContext({ ...options, signal: watchdog.signal }, {
-          attachments,
-          resolveImageAccess: ref => this.config.resolveImageAccess?.(attachments, ref),
-          maxRequestImageBytes: profile.maxRequestImageBytes,
-          requestImagePolicy: {
-            maxPixels: profile.requestImagePixelBudget,
-            maxBytes: profile.requestImageMaxBytes,
-          },
-        }, onReplayDegrade)
-      const events = snapshot.models.streamSimple(model, context, {
-        ...profileOptions(profile, reasoning, apiKey),
-        ...options.temperature === undefined ? {} : { temperature: options.temperature },
-        ...options.maxTokens === undefined ? {} : { maxTokens: options.maxTokens },
-        ...options.sessionId === undefined ? {} : { sessionId: String(options.sessionId) },
-        signal: watchdog.signal,
-        // Profile headers are deployment-owned; attribution names are
-        // Harness-owned and therefore win collisions.
-        headers: requestHeaders(profile.headers),
-      })
-      const iterator = toStreamChunks(events, model.contextWindow, options.signal)[Symbol.asyncIterator]()
-      let exhausted = false
-      let idleArmed = false
-      try {
-        while (true) {
-          const result = await watchdog.next(iterator, { idle: idleArmed })
-          const timeout = timeoutOf(watchdog.signal, 'LLM_STREAM_IDLE_TIMEOUT')
-          if (timeout !== undefined) throw timeout
-          if (result.done) {
-            exhausted = true
-            return
+      let maxImages = profile.configuredMaxImages.get(model.id)
+      let recoveredPromptImageLimit = false
+      while (true) {
+        const context = attachments === undefined
+          ? toPiContext(options, undefined, onReplayDegrade)
+          : await toPiContext({ ...options, signal: watchdog.signal }, {
+            attachments,
+            resolveImageAccess: ref => this.config.resolveImageAccess?.(attachments, ref),
+            maxRequestImageBytes: profile.maxRequestImageBytes,
+            ...maxImages === undefined ? {} : { maxImages },
+            requestImagePolicy: {
+              maxPixels: profile.requestImagePixelBudget,
+              maxBytes: profile.requestImageMaxBytes,
+            },
+          }, onReplayDegrade)
+        const events = snapshot.models.streamSimple(model, context, {
+          ...profileOptions(profile, reasoning, apiKey),
+          ...options.temperature === undefined ? {} : { temperature: options.temperature },
+          ...options.maxTokens === undefined ? {} : { maxTokens: options.maxTokens },
+          ...options.sessionId === undefined ? {} : { sessionId: String(options.sessionId) },
+          signal: watchdog.signal,
+          // Profile headers are deployment-owned; attribution names are
+          // Harness-owned and therefore win collisions.
+          headers: requestHeaders(profile.headers),
+        })
+        const iterator = toStreamChunks(events, model.contextWindow, options.signal)[Symbol.asyncIterator]()
+        let exhausted = false
+        let idleArmed = false
+        let capRetry: number | undefined
+        try {
+          while (true) {
+            const result = await watchdog.next(iterator, { idle: idleArmed })
+            const timeout = timeoutOf(watchdog.signal, 'LLM_STREAM_IDLE_TIMEOUT')
+            if (timeout !== undefined) throw timeout
+            if (result.done) {
+              exhausted = true
+              return
+            }
+            const chunk = result.value
+            if (
+              chunk.type === 'finish'
+              && chunk.reason.kind === 'error'
+              && !recoveredPromptImageLimit
+            ) {
+              const limit = promptImageLimit(chunk.reason.failure.message)
+              if (limit !== undefined && imageOccurrenceCount(options.messages) > limit) {
+                capRetry = limit
+                break
+              }
+            }
+            yield chunk
+            idleArmed ||= startsPostTokenIdle(chunk)
           }
-          yield result.value
-          idleArmed ||= startsPostTokenIdle(result.value)
-        }
-      } finally {
-        if (!exhausted) {
-          consumer.abort('pi-ai stream consumer stopped')
-          try {
-            await iterator.return(undefined)
-          } catch (_abortedSdkTeardown) {
-            // The stable signal already owns SDK termination; return-time abort cannot add an outcome.
+        } catch (error: unknown) {
+          if (timeoutOf(watchdog.signal, 'LLM_STREAM_IDLE_TIMEOUT') !== undefined) throw error
+          if (options.signal?.aborted) throw error
+          if (!recoveredPromptImageLimit) {
+            const limit = promptImageLimit(errorChain(error))
+            if (limit !== undefined && imageOccurrenceCount(options.messages) > limit) {
+              capRetry = limit
+            } else {
+              throw error
+            }
+          } else {
+            throw error
+          }
+        } finally {
+          if (!exhausted) {
+            try {
+              await iterator.return(undefined)
+            } catch (_abortedSdkTeardown) {
+              // The stable signal already owns SDK termination; return-time abort cannot add an outcome.
+            }
+            if (capRetry === undefined) {
+              consumer.abort('pi-ai stream consumer stopped')
+            }
           }
         }
+        if (capRetry === undefined) return
+        recoveredPromptImageLimit = true
+        maxImages = capRetry
       }
     } catch (error: unknown) {
       if (timeoutOf(watchdog.signal, 'LLM_STREAM_IDLE_TIMEOUT') !== undefined) {

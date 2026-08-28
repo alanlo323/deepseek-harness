@@ -99,6 +99,20 @@ export function isQuotaExceededError(detail: string): boolean {
     || /\bout[\s_-]+of[\s_-]+(?:credits?|budget)\b/i.test(detail)
 }
 
+const PROMPT_IMAGE_LIMIT = /At most (\d+) image\(s\) may be provided in one (?:prompt|request)/iu
+
+/**
+ * Read a provider per-prompt image cap from OpenAI-compatible 400 wording.
+ * @param detail - provider error fields or raw HTTP body.
+ * @returns the named non-negative cap, or undefined when the detail is not this refusal.
+ */
+export function promptImageLimit(detail: string): number | undefined {
+  const match = PROMPT_IMAGE_LIMIT.exec(detail)
+  if (match === null) return undefined
+  const limit = Number(match[1])
+  return Number.isSafeInteger(limit) ? limit : undefined
+}
+
 /**
  * Render a thrown value with its full `cause` chain and AggregateError
  * members, so transport wrappers like undici's `TypeError: fetch failed`

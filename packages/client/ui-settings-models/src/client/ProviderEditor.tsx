@@ -355,6 +355,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
     const models = modelDrafts(modelsOverridden ? customModels : inheritedModels())
     const defaultContextWindow = schema.getPath(fallback, ['defaultContextWindow'])
     const defaultMaxTokens = schema.getPath(fallback, ['maxTokens'])
+    const defaultMaxImagesPerRequest = schema.getPath(fallback, ['maxImagesPerRequest'])
     const keyPlaceholder = keyLocked
       ? t('keyEnvLocked')
       : keyState?.configured === true && props.credentialRequired !== true
@@ -472,6 +473,9 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
                     ? defaultContextWindow
                     : undefined}
                   defaultMaxTokens={typeof defaultMaxTokens === 'number' ? defaultMaxTokens : undefined}
+                  defaultMaxImagesPerRequest={typeof defaultMaxImagesPerRequest === 'number'
+                    ? defaultMaxImagesPerRequest
+                    : undefined}
                 />
               )
               : <ModelListEditor {...catalogProps} probe={probe} probeBlocked={keyFailure} api={api} />}

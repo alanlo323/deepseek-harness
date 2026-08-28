@@ -185,6 +185,8 @@ describe('hand-declared providers', () => {
     // the model's capability and stops there.
     expect(resolved.get('acme-gateway')?.configuredMaxTokens.get('bare')).toBeUndefined()
     expect(resolved.get('acme-gateway')?.configuredMaxTokens.get('sized')).toBe(512)
+    expect(resolved.get('acme-gateway')?.configuredMaxImages.get('bare')).toBeUndefined()
+    expect(resolved.get('acme-gateway')?.configuredMaxImages.get('sized')).toBeUndefined()
   })
 
   it('takes a model’s declared modalities, then the catalog’s, then the route’s', () => {
@@ -384,6 +386,20 @@ describe('hand-declared providers', () => {
     expect(declare({ id: 'm', contextWindow: 1.5, maxTokens: 1 })).toThrow(/contextWindow must be a positive integer/)
     expect(declare({ id: 'm', contextWindow: 1, maxTokens: 0 })).toThrow(/maxTokens must be a positive integer/)
     expect(declare({ id: 'm', contextWindow: 1, maxTokens: 1.5 })).toThrow(/maxTokens must be a positive integer/)
+    expect(declare({ id: 'm', maxImagesPerRequest: 0 })).toThrow(/maxImagesPerRequest must be a positive safe integer/)
+    expect(declare({ id: 'm', maxImagesPerRequest: 1.5 })).toThrow(/maxImagesPerRequest must be a positive safe integer/)
+  })
+
+  it('records an explicit per-model image cap as a first-request bound', () => {
+    const resolved = resolveProfiles({
+      'acme-gateway': {
+        api: 'openai-completions',
+        baseURL: 'https://acme.test',
+        models: [{ id: 'bare' }, { id: 'capped', maxImagesPerRequest: 1 }],
+      },
+    })
+    expect(resolved.get('acme-gateway')?.configuredMaxImages.get('bare')).toBeUndefined()
+    expect(resolved.get('acme-gateway')?.configuredMaxImages.get('capped')).toBe(1)
   })
 
   it('names the route key when no displayName is configured', () => {
@@ -701,6 +717,7 @@ describe('modelOverrides', () => {
           [target.id]: {
             name: 'DeepSeek (proxied)',
             maxTokens: 4096,
+            maxImagesPerRequest: 2,
             reasoningEfforts: { off: null, high: 'high' },
           },
         },
@@ -718,6 +735,7 @@ describe('modelOverrides', () => {
     // An override's cap is explicit configuration, so it becomes the request
     // default exactly as a models entry's would.
     expect(resolved.get('deepseek')?.configuredMaxTokens.get(target.id)).toBe(4096)
+    expect(resolved.get('deepseek')?.configuredMaxImages.get(target.id)).toBe(2)
     // A sibling the overrides do not name is byte-identical to the catalog.
     const sibling = models.find(model => model.id !== target.id)
     expect(sibling?.maxTokens).toBe(getBuiltinModels('deepseek').find(model => model.id === sibling?.id)?.maxTokens)

@@ -217,6 +217,12 @@ export interface ResolvedPiAiProviderProfile
    * own, so a catalog capability must not appear here.
    */
   configuredMaxTokens: ReadonlyMap<string, number>
+  /**
+   * Per-request represented-image caps this profile explicitly configured, by
+   * model id. Omission leaves a model's count unbounded until a provider 400
+   * names a tighter cap.
+   */
+  configuredMaxImages: ReadonlyMap<string, number>
 }
 
 /** Plugin configuration: the provider routes this instance owns. */
@@ -307,6 +313,7 @@ const modelFields = {
   // `{}`, and absent must stay distinguishable — it means "inherit the
   // installed catalog's capability", while `false` disables reasoning.
   reasoningEfforts: z.union([z.const(false), reasoningEfforts]),
+  maxImagesPerRequest: z.number().step(1).min(1),
   compat: compatProfile,
 }
 
@@ -465,6 +472,7 @@ export function resolveProfiles(
       ...rest.headers === undefined ? {} : { headers: { ...rest.headers } },
       ...rest.thinkingBudgets === undefined ? {} : { thinkingBudgets: { ...rest.thinkingBudgets } },
       configuredMaxTokens: catalog.configuredMaxTokens,
+      configuredMaxImages: catalog.configuredMaxImages,
       piProvider: buildProvider({
         provider,
         displayName,

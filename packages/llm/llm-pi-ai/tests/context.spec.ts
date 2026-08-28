@@ -331,6 +331,27 @@ describe('pi-ai request context conversion', () => {
     expect(readImageRequest.mock.calls[0]?.[0]).toEqual(recent)
   })
 
+  it('replaces oldest images once a per-request image count is exceeded', async () => {
+    const old = { ...ref, attachmentId: AttachmentId(`sha256:${'c'.repeat(64)}`) }
+    const recent = { ...ref, attachmentId: AttachmentId(`sha256:${'d'.repeat(64)}`) }
+    const context = await toPiContext(request([
+      user([{ type: 'image', attachment: old }]),
+      user([{ type: 'image', attachment: recent }]),
+    ]), imageContext(attachments, { maxImages: 1 }))
+
+    expect(context.messages[0]).toMatchObject({
+      role: 'user',
+      content: offloadedImageText(old),
+    })
+    expect(context.messages[1]).toMatchObject({
+      role: 'user',
+      content: [
+        { type: 'text', text: expect.stringContaining(String(recent.attachmentId)) as string },
+        { type: 'image' },
+      ],
+    })
+  })
+
   it('uses independently resolved access when exact encoded bytes require offload', async () => {
     const sized: ImageAttachmentRef = { ...ref, bytes: 3 }
     const access = { readonlyPath: '/tmp/dsh-normalized-image' }

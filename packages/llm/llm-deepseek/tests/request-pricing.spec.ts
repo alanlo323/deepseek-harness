@@ -74,6 +74,18 @@ describe('DeepSeek request-image pricing', () => {
     expect(prices[1]?.text).toContain('/world/attachments/photo.png')
   })
 
+  it('honors a per-model image count tighter than the connection bound', () => {
+    const images = [ref('first', 800, 800), ref('second', 800, 800)]
+    const prices = deepSeekImageRequestPricing(
+      resolveAdapterOptions({
+        models: [{ ...VISION_MODEL, maxImagesPerRequest: 1 }],
+      }),
+      'vision',
+    ).priceImages(images)
+    expect(prices[0]).toEqual({ visualTokens: 0, text: offloadedImageText(images[0]!) })
+    expect(prices[1]?.visualTokens).toBe(349)
+  })
+
   it('prices count-offloaded oldest occurrences as their placeholder text', () => {
     const images = [ref('first', 800, 800), ref('second', 800, 800), ref('third', 800, 800)]
     const prices = deepSeekImageRequestPricing(

@@ -387,6 +387,118 @@ describe('PiAiAdapter provider routing', () => {
     expect(server.paths).toEqual(['/chat/completions'])
   })
 
+  it('retries a per-prompt image cap after oldest-first offload', async () => {
+    const promptCap = JSON.stringify({
+      error: {
+        message: '400: {"message":"At most 1 image(s) may be provided in one prompt. (parameter=image)","type":"BadRequestError","param":"image","code":400}',
+      },
+    })
+    const server = await mockServer([
+      { status: 400, body: promptCap },
+      { events: textEvents },
+    ])
+    const secondRef = { ...IMAGE_REF, attachmentId: AttachmentId(`sha256:${'c'.repeat(64)}`) }
+    const store = {
+      readImageRequest: (value: ImageAttachmentRef) => Promise.resolve({
+        variantId: ImageVariantId(`sha256:${(value.attachmentId === IMAGE_REF.attachmentId ? 'b' : 'd').repeat(64)}`),
+        attachment: value,
+        data: Uint8Array.of(1),
+        mediaType: 'image/png',
+        bytes: 1,
+        width: 1,
+        height: 1,
+        depth: 'uchar',
+        space: 'srgb',
+        hasAlpha: true,
+      }),
+      imageHostPath: () => undefined,
+    } as unknown as AttachmentStore
+    const adapter = new PiAiAdapter({
+      profiles: () => resolveProfiles({
+        gateway: {
+          api: 'openai-completions',
+          baseURL: server.url,
+          models: [{ id: 'vision', input: ['text', 'image'], contextWindow: 8192, maxTokens: 1024 }],
+        },
+      }),
+      resolveApiKey: () => Promise.resolve('test-key'),
+      auth: memoryAuth(),
+      resolveAttachments: () => store,
+    })
+
+    const chunks = []
+    for await (const chunk of adapter.stream({
+      provider: 'gateway',
+      model: 'vision',
+      messages: [createUserMessage({
+        content: [
+          { type: 'image', attachment: IMAGE_REF },
+          { type: 'image', attachment: secondRef },
+        ],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    })) chunks.push(chunk)
+
+    expect(server.requests).toHaveLength(2)
+    expect(JSON.stringify(server.requests[1])).toContain('image omitted to fit request image limits')
+    expect(chunks.at(-1)).toMatchObject({ type: 'finish', reason: { kind: 'stop' } })
+  })
+
+  it('projects a configured per-model image cap on the first chat', async () => {
+    const server = await mockServer([{ events: textEvents }])
+    const secondRef = { ...IMAGE_REF, attachmentId: AttachmentId(`sha256:${'c'.repeat(64)}`) }
+    const store = {
+      readImageRequest: (value: ImageAttachmentRef) => Promise.resolve({
+        variantId: ImageVariantId(`sha256:${(value.attachmentId === IMAGE_REF.attachmentId ? 'b' : 'd').repeat(64)}`),
+        attachment: value,
+        data: Uint8Array.of(1),
+        mediaType: 'image/png',
+        bytes: 1,
+        width: 1,
+        height: 1,
+        depth: 'uchar',
+        space: 'srgb',
+        hasAlpha: true,
+      }),
+      imageHostPath: () => undefined,
+    } as unknown as AttachmentStore
+    const adapter = new PiAiAdapter({
+      profiles: () => resolveProfiles({
+        gateway: {
+          api: 'openai-completions',
+          baseURL: server.url,
+          models: [{
+            id: 'vision',
+            input: ['text', 'image'],
+            contextWindow: 8192,
+            maxTokens: 1024,
+            maxImagesPerRequest: 1,
+          }],
+        },
+      }),
+      resolveApiKey: () => Promise.resolve('test-key'),
+      auth: memoryAuth(),
+      resolveAttachments: () => store,
+    })
+
+    const chunks = []
+    for await (const chunk of adapter.stream({
+      provider: 'gateway',
+      model: 'vision',
+      messages: [createUserMessage({
+        content: [
+          { type: 'image', attachment: IMAGE_REF },
+          { type: 'image', attachment: secondRef },
+        ],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    })) chunks.push(chunk)
+
+    expect(server.requests).toHaveLength(1)
+    expect(JSON.stringify(server.requests[0])).toContain('image omitted to fit request image limits')
+    expect(chunks.at(-1)).toMatchObject({ type: 'finish', reason: { kind: 'stop' } })
+  })
+
   it('uses the resolved catalog context window for usage-based overflow detection', async () => {
     const model = getBuiltinModels('deepseek').find(candidate => candidate.id === 'deepseek-v4-flash')
     if (model === undefined) throw new Error('deepseek-v4-flash missing from pi-ai test catalog')

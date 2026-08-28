@@ -8,7 +8,7 @@
  * @module dsh-llm-deepseek/adapter
  */
 
-import { attributionHeaders, contentHasImage, CONTEXT_WINDOW_EXCEEDED_CODE, isContextWindowExceededError, isQuotaExceededError, LlmAdapter, LlmError, offloadedImageText, offloadRequestImagesWithPolicy, ProviderRequestId, QUOTA_EXCEEDED_CODE, ReasoningEffortId, startsPostTokenIdle } from '@deepseek-ai/dsh-llm'
+import { attributionHeaders, contentHasImage, CONTEXT_WINDOW_EXCEEDED_CODE, isContextWindowExceededError, isQuotaExceededError, LlmAdapter, LlmError, offloadedImageText, offloadRequestImagesWithPolicy, promptImageLimit, ProviderRequestId, QUOTA_EXCEEDED_CODE, ReasoningEffortId, startsPostTokenIdle } from '@deepseek-ai/dsh-llm'
 import type {
   ContentBlock,
   GenerateOptions,
@@ -37,13 +37,13 @@ import type {
 } from '@deepseek-ai/dsh-deepseek-llm-api-extensions'
 import { serializeRequest, serializeRequestWithImages } from './serialize.ts'
 import type { ImageWireLocation, RequestDefaults } from './serialize.ts'
-import { deepSeekImageRequestPricing, resolveRequestImagePolicy } from './request-pricing.ts'
+import { deepSeekImageRequestPricing, resolveRequestImageCountPolicy, resolveRequestImagePolicy } from './request-pricing.ts'
 import { DeepSeekFileStore } from './file-store.ts'
 import type { DeepSeekFilePolicy } from './file-store.ts'
 import type { DeepSeekFileId } from './file-id.ts'
 import { parseSse } from './sse.ts'
 import { translate } from './translate.ts'
-import type { WireError, WireRequest } from './types.ts'
+import type { WireError, WireMessage, WireRequest } from './types.ts'
 
 /** One optional model entry advertised by the direct-fetch adapter. */
 export interface DeepSeekCatalogModel {
@@ -63,6 +63,11 @@ export interface DeepSeekCatalogModel {
   imagePixelBudget?: number | 'low'
   /** Encoded-byte target for one deterministic request preview; the smallest quality-ladder output is used when no quality fits. */
   imageMaxBytes?: number
+  /**
+   * Represented images kept for one request to this model; omission uses
+   * {@link DeepSeekConnectionOptions.maxImagesPerRequest}.
+   */
+  maxImagesPerRequest?: number
 }
 
 /**
@@ -214,6 +219,19 @@ function collectImageRefs(
   }
 }
 
+/** Count image blocks in request history, including nested tool-result content. */
+function imageOccurrenceCount(messages: GenerateOptions['messages']): number {
+  let count = 0
+  const walk = (content: readonly ContentBlock[]): void => {
+    for (const block of content) {
+      if (block.type === 'image') count += 1
+      else if (block.type === 'tool-result') walk(block.content)
+    }
+  }
+  for (const message of messages) walk(message.content)
+  return count
+}
+
 async function prepareRequestImages(
   options: GenerateOptions,
   attachments: AttachmentStore,
@@ -345,6 +363,71 @@ export function httpErrorCode(status: number, error?: WireError['error']): strin
   }
   if (status >= 500) return 'SERVER'
   return `HTTP_${status}`
+}
+
+export { promptImageLimit }
+
+function errorFieldText(value: unknown): string | undefined {
+  if (typeof value === 'string' && value.length > 0) return value
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  return undefined
+}
+
+/**
+ * Read OpenAI-compatible chat error fields from a non-2xx body.
+ * Live gateways emit either `{ error: { message, type, code } }` or a top-level
+ * `{ message, type, param, code }`; `detail` always includes the raw body so a
+ * `400: {…}` wrapper still matches {@link promptImageLimit}.
+ */
+function readProviderChatError(raw: string): {
+  message?: string
+  fields?: WireError['error']
+  detail: string
+} {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw) as unknown
+  } catch {
+    return { detail: raw }
+  }
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return { detail: raw }
+  }
+  const record = parsed as { error?: unknown; message?: unknown; type?: unknown; code?: unknown }
+  const nested = record.error
+  const source = nested !== null && typeof nested === 'object' && !Array.isArray(nested)
+    ? nested as { message?: unknown; type?: unknown; code?: unknown }
+    : record
+  const message = typeof source.message === 'string' ? source.message : undefined
+  const type = errorFieldText(source.type)
+  const code = errorFieldText(source.code)
+  const fields = message === undefined && type === undefined && code === undefined
+    ? undefined
+    : {
+      ...message === undefined ? {} : { message },
+      ...type === undefined ? {} : { type },
+      ...code === undefined ? {} : { code },
+    }
+  const detail = [code, type, message, raw]
+    .filter((field): field is string => typeof field === 'string' && field.length > 0)
+    .join(' ')
+  return {
+    ...message === undefined ? {} : { message },
+    ...fields === undefined ? {} : { fields },
+    detail: detail.length > 0 ? detail : raw,
+  }
+}
+
+/** Count file and image_url parts actually placed on the chat wire. */
+function wireImageCount(messages: readonly WireMessage[]): number {
+  let count = 0
+  for (const message of messages) {
+    if (message.role !== 'user' || typeof message.content === 'string') continue
+    for (const part of message.content) {
+      if (part.type !== 'text') count += 1
+    }
+  }
+  return count
 }
 
 /**
@@ -553,6 +636,7 @@ export class DeepSeekAdapter extends LlmAdapter {
     const fileConnection = { baseURL: connection.baseURL, apiKey }
     const model = connection.models.find(entry => entry.id === options.model)
     const policy = model === undefined ? undefined : resolveRequestImagePolicy(model)
+    const countPolicy = resolveRequestImageCountPolicy(connection, model)
     const resolveImageAccess = attachments === undefined
       ? undefined
       : (ref: ImageAttachmentRef): ImageAttachmentAccess | undefined => this.config.resolveImageAccess?.(attachments, ref)
@@ -560,9 +644,9 @@ export class DeepSeekAdapter extends LlmAdapter {
     const requestMessages = policy === undefined ? options.messages : offloadRequestImagesWithPolicy(options.messages, {
       representation: 'raw',
       maxBytes: connection.maxRequestFilesBytes,
-      maxImages: connection.maxImagesPerRequest,
+      maxImages: countPolicy.maxImages,
       byteQuantum: connection.imageOffloadByteQuantum,
-      countQuantum: connection.imageOffloadCountQuantum,
+      countQuantum: countPolicy.countQuantum,
       byteLength: ref => Math.min(ref.bytes, policy.maxBytes),
       placeholder: ref => offloadedImageText(ref, resolveImageAccess?.(ref)),
     })
@@ -572,6 +656,9 @@ export class DeepSeekAdapter extends LlmAdapter {
       : await prepareRequestImages(requestOptions, attachments, model, signal)
     let representation: 'file' | 'base64' = 'file'
     let fileAttempt = 0
+    let maxImages = countPolicy.maxImages
+    let countQuantum = countPolicy.countQuantum
+    let recoveredPromptImageLimit = false
     while (true) {
       const usedFiles: UsedRequestFile[] = []
       let body: WireRequest
@@ -583,9 +670,9 @@ export class DeepSeekAdapter extends LlmAdapter {
           requestImages,
           ...imageAccessOptions,
           maxRequestImageBytes: connection.maxInlineRequestImageBytes,
-          maxImagesPerRequest: connection.maxImagesPerRequest,
+          maxImagesPerRequest: maxImages,
           byteQuantum: connection.inlineImageOffloadByteQuantum,
-          countQuantum: connection.imageOffloadCountQuantum,
+          countQuantum,
         }, connection.defaults)
       } else {
         try {
@@ -614,9 +701,9 @@ export class DeepSeekAdapter extends LlmAdapter {
             requestImages,
             ...imageAccessOptions,
             maxRequestImageBytes: connection.maxRequestFilesBytes,
-            maxImagesPerRequest: connection.maxImagesPerRequest,
+            maxImagesPerRequest: maxImages,
             byteQuantum: connection.imageOffloadByteQuantum,
-            countQuantum: connection.imageOffloadCountQuantum,
+            countQuantum,
           }, connection.defaults)
         } catch (error: unknown) {
           if (!(error instanceof FileResolutionFailure)) throw error
@@ -665,18 +752,10 @@ export class DeepSeekAdapter extends LlmAdapter {
 
       if (!response.ok) {
         let message = `DeepSeek API error (HTTP ${response.status})`
-        let providerError: WireError['error']
         const rawResponse = await response.text()
-        try {
-          const parsed = JSON.parse(rawResponse) as WireError
-          providerError = parsed.error
-          if (providerError?.message) message = providerError.message
-        } catch {
-          // The HTTP status remains authoritative when a gateway returns malformed JSON.
-        }
-        const detail = [providerError?.code, providerError?.type, providerError?.message]
-          .filter((field): field is string => typeof field === 'string')
-          .join(' ')
+        const providerError = readProviderChatError(rawResponse)
+        if (providerError.message !== undefined) message = providerError.message
+        const detail = providerError.detail
         const staleFile = usedFiles.length > 0 && providerRejectedFileId(detail)
         if (staleFile) {
           await Promise.all(staleMappings(usedFiles, detail).map(file => (
@@ -687,12 +766,27 @@ export class DeepSeekAdapter extends LlmAdapter {
             continue
           }
         }
+        const imageLimit = promptImageLimit(detail)
+        if (
+          imageLimit !== undefined
+          && !recoveredPromptImageLimit
+          && (
+            wireImageCount(body.messages) > imageLimit
+            || imageOccurrenceCount(requestOptions.messages) > imageLimit
+          )
+        ) {
+          recoveredPromptImageLimit = true
+          maxImages = imageLimit
+          // The configured count quantum can exceed the named cap and would omit every image.
+          countQuantum = 1
+          continue
+        }
         if (response.status === 400 && usedFiles.length > 0 && providerRejectedNormalizedImage(detail)) {
           message = normalizedImageDiagnostic(usedFiles, message, detail)
         }
         const delay = providerRetryAfterMs(response.headers.get('retry-after'))
         const id = requestId(response.headers)
-        throw new LlmError(message, httpErrorCode(response.status, providerError), {
+        throw new LlmError(message, httpErrorCode(response.status, providerError.fields), {
           cause: new Error(rawResponse.length > 0 ? rawResponse : `DeepSeek HTTP ${response.status}`),
           status: response.status,
           ...delay === undefined ? {} : { providerRetryAfterMs: delay },

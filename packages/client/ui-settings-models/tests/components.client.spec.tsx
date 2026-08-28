@@ -11,7 +11,7 @@ import {
 import type { ModelsSectionInjected, ModelsSectionProps } from '../src/client/ModelsSection.tsx'
 import { pathOps } from '../src/client/ProviderEditor.tsx'
 import {
-  DeepSeekModelsEditor, formatCapacity, modelDrafts, parseCapacity, validateDeepSeekModels,
+  DeepSeekModelsEditor, formatCapacity, modelDrafts, parseCapacity, parseImageCount, validateDeepSeekModels,
 } from '../src/client/DeepSeekModelsEditor.tsx'
 import { apiKeyFailure } from '../src/client/apiKey.ts'
 import { SettingsDescribeMirror } from '@deepseek-ai/dsh-client-ui-settings/src/client/settings-mirror.ts'
@@ -596,6 +596,13 @@ describe('ModelsSection', () => {
     expect(validateDeepSeekModels([{ id: 'model', maxTokens: 0 }]))
       .toEqual({ index: 0, key: 'modelMaxTokensInvalid' })
     expect(validateDeepSeekModels([{ id: 'model', maxTokens: 8192 }])).toBeUndefined()
+    expect(validateDeepSeekModels([{ id: 'model', maxImagesPerRequest: null }]))
+      .toEqual({ index: 0, key: 'modelMaxImagesInvalid' })
+    expect(validateDeepSeekModels([{ id: 'model', maxImagesPerRequest: 1.5 }]))
+      .toEqual({ index: 0, key: 'modelMaxImagesInvalid' })
+    expect(validateDeepSeekModels([{ id: 'model', maxImagesPerRequest: 0 }]))
+      .toEqual({ index: 0, key: 'modelMaxImagesInvalid' })
+    expect(validateDeepSeekModels([{ id: 'model', maxImagesPerRequest: 1 }])).toBeUndefined()
   })
 
   it('reads context windows written as counts, thousands, or millions', () => {
@@ -617,6 +624,17 @@ describe('ModelsSection', () => {
     expect(parseCapacity('abc')).toBeNaN()
     expect(parseCapacity('1G')).toBeNaN()
     expect(parseCapacity('1M1')).toBeNaN()
+  })
+
+  it('reads a per-request image count as a plain positive integer', () => {
+    expect(parseImageCount('')).toBeUndefined()
+    expect(parseImageCount('   ')).toBeUndefined()
+    expect(parseImageCount('1')).toBe(1)
+    expect(parseImageCount(' 8 ')).toBe(8)
+    expect(parseImageCount('0')).toBeNaN()
+    expect(parseImageCount('1.5')).toBeNaN()
+    expect(parseImageCount('1K')).toBeNaN()
+    expect(parseImageCount('abc')).toBeNaN()
   })
 
   it('spells a stored count in the shortest form that round-trips', () => {
@@ -865,6 +883,7 @@ describe('ModelsSection', () => {
       overridden={false}
       defaultContextWindow={undefined}
       defaultMaxTokens={undefined}
+      defaultMaxImagesPerRequest={undefined}
       t={t}
       disabled={true}
       onChange={vi.fn()}
@@ -876,6 +895,8 @@ describe('ModelsSection', () => {
       .toBe(en.contextWindowPlaceholder)
     expect(screen.getByLabelText<HTMLInputElement>(`${en.maxTokens} 1`).placeholder)
       .toBe(en.maxTokensPlaceholder)
+    expect(screen.getByLabelText<HTMLInputElement>(`${en.maxImagesPerRequest} 1`).placeholder)
+      .toBe(en.maxImagesPerRequestPlaceholder)
   })
 
   it('can empty and reset the model override, then clear optional fields without dropping hidden data', async () => {

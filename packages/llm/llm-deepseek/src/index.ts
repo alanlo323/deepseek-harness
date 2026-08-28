@@ -108,6 +108,7 @@ const DEFAULT_MODELS: DeepSeekCatalogModel[] = [
     inputModalities: ['text', 'image'],
     imagePixelBudget: DEFAULT_REQUEST_IMAGE_PIXEL_BUDGET,
     imageMaxBytes: DEFAULT_REQUEST_IMAGE_MAX_BYTES,
+    maxImagesPerRequest: 1,
   },
 ]
 
@@ -176,6 +177,7 @@ const catalogModel: z<DeepSeekCatalogModel> = z.object({
   inputModalities: z.array(z.union(MODEL_MODALITIES)).min(1).default(['text']),
   imagePixelBudget: z.union([z.number().step(1).min(1), 'low']),
   imageMaxBytes: z.number().step(1).min(1),
+  maxImagesPerRequest: z.number().step(1).min(1),
 })
 
 export const Config: z<Config> = z.object({
@@ -250,7 +252,11 @@ function resolveModels(models: readonly DeepSeekCatalogModel[] | undefined): Dee
       throw new Error(`llm-deepseek: catalog model "${model.id}" inputModalities must not contain duplicates`)
     }
     const hasImage = inputModalities.includes('image')
-    if (!hasImage && (model.imagePixelBudget !== undefined || model.imageMaxBytes !== undefined)) {
+    if (!hasImage && (
+      model.imagePixelBudget !== undefined
+      || model.imageMaxBytes !== undefined
+      || model.maxImagesPerRequest !== undefined
+    )) {
       throw new Error(`llm-deepseek: text-only catalog model "${model.id}" cannot declare image request limits`)
     }
     if (model.imagePixelBudget !== undefined
@@ -261,6 +267,10 @@ function resolveModels(models: readonly DeepSeekCatalogModel[] | undefined): Dee
     if (model.imageMaxBytes !== undefined
       && (!Number.isSafeInteger(model.imageMaxBytes) || model.imageMaxBytes <= 0)) {
       throw new Error(`llm-deepseek: catalog model "${model.id}" imageMaxBytes must be a positive safe integer`)
+    }
+    if (model.maxImagesPerRequest !== undefined
+      && (!Number.isSafeInteger(model.maxImagesPerRequest) || model.maxImagesPerRequest <= 0)) {
+      throw new Error(`llm-deepseek: catalog model "${model.id}" maxImagesPerRequest must be a positive safe integer`)
     }
     if (seen.has(model.id)) throw new Error(`llm-deepseek: duplicate catalog model "${model.id}"`)
     seen.add(model.id)
@@ -277,6 +287,7 @@ function resolveModels(models: readonly DeepSeekCatalogModel[] | undefined): Dee
             ? DEFAULT_LOW_DETAIL_IMAGE_PIXEL_BUDGET
             : model.imagePixelBudget ?? DEFAULT_REQUEST_IMAGE_PIXEL_BUDGET,
           imageMaxBytes: model.imageMaxBytes ?? DEFAULT_REQUEST_IMAGE_MAX_BYTES,
+          ...model.maxImagesPerRequest === undefined ? {} : { maxImagesPerRequest: model.maxImagesPerRequest },
         }
         : {},
     }

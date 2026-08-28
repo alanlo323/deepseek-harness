@@ -46,6 +46,25 @@ export function resolveRequestImagePolicy(model: DeepSeekCatalogModel): ImageReq
 }
 
 /**
+ * Resolve the represented-image count bound and removal quantum for one model.
+ * @param connection - validated connection facts of this request.
+ * @param model - advertised catalog route, when the request names one.
+ * @returns the tighter of the connection and per-model count bounds, with a quantum that cannot exceed that bound.
+ */
+export function resolveRequestImageCountPolicy(
+  connection: DeepSeekConnectionOptions,
+  model: DeepSeekCatalogModel | undefined,
+): { maxImages: number; countQuantum: number } {
+  const maxImages = model?.maxImagesPerRequest === undefined
+    ? connection.maxImagesPerRequest
+    : Math.min(connection.maxImagesPerRequest, model.maxImagesPerRequest)
+  return {
+    maxImages,
+    countQuantum: Math.min(connection.imageOffloadCountQuantum, maxImages),
+  }
+}
+
+/**
  * Price one occurrence a text-only route substitutes with deterministic text,
  * reproducing the `projectImagesForTextModel` substitution `LlmRuntime`
  * applies before dispatching to a route without the `image` modality.
@@ -80,15 +99,16 @@ export function deepSeekImageRequestPricing(
     return { priceImages: images => images.map(textOnlyPrice) }
   }
   const policy = resolveRequestImagePolicy(catalogModel)
+  const countPolicy = resolveRequestImageCountPolicy(connection, catalogModel)
   return {
     priceImages: (images) => {
       const offloaded = offloadedImagePrefixCount(
         images.map(ref => Math.min(ref.bytes, policy.maxBytes)),
         {
           maxBytes: connection.maxRequestFilesBytes,
-          maxImages: connection.maxImagesPerRequest,
+          maxImages: countPolicy.maxImages,
           byteQuantum: connection.imageOffloadByteQuantum,
-          countQuantum: connection.imageOffloadCountQuantum,
+          countQuantum: countPolicy.countQuantum,
         },
       )
       return images.map((ref, index) => {
