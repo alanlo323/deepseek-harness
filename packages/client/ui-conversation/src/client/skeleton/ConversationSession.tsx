@@ -191,9 +191,18 @@ export function ConversationSession({
     // the machine mirror, not this seed effect.
   }, [inputActions])
 
-  if (session.blank && conversationPhase(session, conversation) === 'blank') return null
+  if (session.blank && conversationPhase(session, conversation) === 'blank') {
+    return renderSlot('conversation.session.live', {
+      openView: actions.openView,
+      completeViewRequest: actions.completeViewRequest,
+    })
+  }
   return (
     <div className={css.viewArea}>
+      {renderSlot('conversation.session.live', {
+        openView: actions.openView,
+        completeViewRequest: actions.completeViewRequest,
+      })}
       {active !== undefined && renderSlot('conversation.view', {
         viewRequest,
         openView: actions.openView,

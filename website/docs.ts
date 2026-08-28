@@ -320,6 +320,7 @@ const subsystemGroups = [
     ['lsp.md', 'LSP 导航', 'LSP navigation'],
     ['code-runtime.md', '代码运行时', 'Code runtime'],
     ['web.md', 'Web 访问', 'Web access'],
+    ['document.md', '提交文档', 'Submitted documents'],
     ['skills.md', '技能', 'Skills'],
     ['workflow.md', '工作流', 'Workflows'],
     ['subagent.md', '子代理', 'Subagents'],

@@ -163,6 +163,10 @@
         # its literals, for example: ['app.internal', ...ctx.webRuntime.trustedHosts].
         trustedHosts: !!js ctx.webRuntime.trustedHosts
 
+    # Submitted Markdown reports: projection, live Remote read, and image Fetch.
+    - id: document-host
+      name: '@deepseek-ai/dsh-document-host'
+
     - id: api-remotes
       name: '@deepseek-ai/dsh-api-remotes'
 
@@ -292,6 +296,9 @@
 
     - id: ui-trajectory
       name: '@deepseek-ai/dsh-client-ui-trajectory'
+
+    - id: ui-document
+      name: '@deepseek-ai/dsh-client-ui-document'
 
 # ── the agent plane moves behind agent presets ─────────────────────────────
 #

@@ -808,6 +808,19 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'documentHost',
+    summary: 'Host service backing `ctx.remote.submittedDocument`.',
+    description: 'Host service backing `ctx.remote.submittedDocument`.',
+    methods: [
+      {
+        signature: '@Remote(\'read\') async read(request: ReadSubmittedDocumentRequest): Promise<ReadSubmittedDocumentResult>',
+        description: 'Read the Markdown for one successful present_document call. Prefers a fresh contained workspace read; falls back to the submit-time snapshot.',
+        parameters: [{ name: 'request', description: 'session and tool-call identity.' }],
+        returns: 'live or snapshot Markdown, or a business failure.',
+      },
+    ],
+  },
+  {
     key: 'e2b',
     summary: 'Creates one lazily consumable E2B SDK handle and deletes the sandbox at timeout or disposal.',
     description: 'Creates one lazily consumable E2B SDK handle and deletes the sandbox at timeout or disposal. Creation begins at plugin construction; adapters await getSandbox before their first operation.',
@@ -4591,6 +4604,26 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ReadResultView {\n    card: \'read\';\n    title?: string;\n    path: string;\n    offset: number;\n    lines: ReadFileLine[];\n    totalLines: number;\n    lang?: string;\n    content?: ContentBlock[];\n}',
   },
   {
+    name: 'ReadSubmittedDocumentFailure',
+    declaration: 'export interface ReadSubmittedDocumentFailure {\n    readonly code: ReadSubmittedDocumentFailureCode;\n}',
+  },
+  {
+    name: 'ReadSubmittedDocumentFailureCode',
+    declaration: 'export type ReadSubmittedDocumentFailureCode = \'session-not-found\' | \'document-not-found\' | \'missing-cwd\' | \'unreadable\';',
+  },
+  {
+    name: 'ReadSubmittedDocumentRequest',
+    declaration: 'export interface ReadSubmittedDocumentRequest {\n    readonly sessionId: SessionId;\n    readonly documentCallId: string;\n}',
+  },
+  {
+    name: 'ReadSubmittedDocumentResult',
+    declaration: 'export type ReadSubmittedDocumentResult = {\n    readonly ok: true;\n    readonly value: ReadSubmittedDocumentValue;\n} | {\n    readonly ok: false;\n    readonly error: ReadSubmittedDocumentFailure;\n};',
+  },
+  {
+    name: 'ReadSubmittedDocumentValue',
+    declaration: 'export interface ReadSubmittedDocumentValue {\n    readonly title: string;\n    readonly logicalPath: string;\n    readonly markdown: string;\n    readonly source: \'live\' | \'snapshot\';\n    readonly images: readonly SubmittedDocumentImage[];\n}',
+  },
+  {
     name: 'ReasoningBlock',
     declaration: 'export interface ReasoningBlock {\n    type: \'reasoning\';\n    text: string;\n}',
   },
@@ -5437,6 +5470,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SubagentStopReasonMap',
     declaration: 'export interface SubagentStopReasonMap {\n    completed: \'completed\';\n    aborted: \'aborted\';\n    error: \'error\';\n    \'max-tokens\': \'max-tokens\';\n    refusal: \'refusal\';\n}',
+  },
+  {
+    name: 'SubmittedDocumentImage',
+    declaration: 'export interface SubmittedDocumentImage {\n    readonly ref: string;\n    readonly mediaType: string;\n}',
   },
   {
     name: 'SubprocessCollect',

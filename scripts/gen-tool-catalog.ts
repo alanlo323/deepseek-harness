@@ -62,6 +62,7 @@ import * as ToolTasks from '@deepseek-ai/dsh-tool-jobs'
 import type TeamService from '@deepseek-ai/dsh-experimental-agent-team'
 import * as ToolTeam from '@deepseek-ai/dsh-experimental-tool-agent-team'
 import * as ToolTodo from '@deepseek-ai/dsh-tool-todo'
+import * as ToolPresentDocument from '@deepseek-ai/dsh-tool-present-document'
 import * as ToolSubagent from '@deepseek-ai/dsh-tool-subagent'
 import { registerListSubagentModels } from '../packages/subagent/tool-subagent/src/list-models.ts'
 import * as ToolWeb from '@deepseek-ai/dsh-tool-web'
@@ -579,6 +580,18 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'todo_write is session-owned state; UIs render the latest todo/write event as a checklist. `allowParallelInProgress` is required with no default, so the catalog states its choice: `true`, whose description invites several `in_progress` items. A deployment choosing `false` receives the same tool with a description asking for exactly one active task.',
+  },
+  {
+    pkg: '@deepseek-ai/dsh-tool-present-document',
+    dir: 'tool-present-document',
+    source: 'packages/document/tool-present-document/src/index.ts',
+    requires: ['ctx.tools', 'owning Agent session at execute time'],
+    writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(ToolPresentDocument)
+    },
+    note:
+      'present_document is mounted by agent presets that write a final Markdown report, not by the shipped default composition. A successful call stores a submitted-document snapshot on tool/result meta; the Web Report tab appears only after that success.',
   },
   {
     pkg: '@deepseek-ai/dsh-tool-workflow',

@@ -90,6 +90,7 @@ describe('AssistantNodeView Think preview inject', () => {
       useWorkspaces: emptyWorkspaces(),
       openFile: () => {},
       inspectCall: () => {},
+      openView: () => {},
       forkAt: () => {},
       renderMessageImages: () => null,
       fileMentions: () => undefined,

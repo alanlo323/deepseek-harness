@@ -2007,6 +2007,56 @@
       "source": "packages/feedback/message-feedback/src/types.ts"
     },
     {
+      "doc": "docs/subsystems/document.md",
+      "symbol": "SubmittedDocumentKind",
+      "source": "packages/document/document-core/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/document.md",
+      "symbol": "SubmittedDocumentImage",
+      "source": "packages/document/document-core/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/document.md",
+      "symbol": "SubmittedDocumentMeta",
+      "source": "packages/document/document-core/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/document.md",
+      "symbol": "PresentDocumentValue",
+      "source": "packages/document/document-core/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/document.md",
+      "symbol": "SubmittedDocumentRecord",
+      "source": "packages/document/document-core/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/document.md",
+      "symbol": "ReadSubmittedDocumentRequest",
+      "source": "packages/document/document-host/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/document.md",
+      "symbol": "ReadSubmittedDocumentValue",
+      "source": "packages/document/document-host/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/document.md",
+      "symbol": "ReadSubmittedDocumentFailureCode",
+      "source": "packages/document/document-host/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/document.md",
+      "symbol": "ReadSubmittedDocumentFailure",
+      "source": "packages/document/document-host/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/document.md",
+      "symbol": "ReadSubmittedDocumentResult",
+      "source": "packages/document/document-host/src/types.ts"
+    },
+    {
       "doc": "packages/client/ui-conversation/README.md",
       "symbol": "ComposerChainProps",
       "source": "packages/client/ui-conversation/src/client/contract/slots.ts"

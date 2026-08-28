@@ -281,6 +281,16 @@
   object-fit: contain;
 }
 
+.imageFailed {
+  display: block;
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-bg-layer-1);
+  border: 1px dashed var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
 /* Inline file mention: the same link language this sheet gives anchors (and
    thereby URL-promoted inline code) — link-blue at rest, underline only on
    hover/focus. An underline at rest reads badly inside the code chip, where

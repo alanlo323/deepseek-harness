@@ -1,8 +1,7 @@
 /** Registers the target-neutral Conversation assembly, shell, input, and docks. */
 import type { Context } from '@deepseek-ai/cordis'
 import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
-import { createSnapshotStore, type BoundActions } from '@deepseek-ai/dsh-client-store'
-import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
+import { type BoundActions } from '@deepseek-ai/dsh-client-store'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 // Type-only service and declaration merges used by this assembly.
 import type {} from '@deepseek-ai/dsh-client-locale/client'
@@ -10,7 +9,6 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { UiConversation } from './conversation/assembly.ts'
-import type { ViewTab } from './contract/views.ts'
 import type {
   ComposerBarInjected, ConversationInjected, ConversationSessionHeaderInjected,
   ConversationSessionInjected,
@@ -35,6 +33,7 @@ import { InputBar } from './skeleton/InputBar.tsx'
 import { todoDockEntry } from './skeleton/TodoPanel.tsx'
 import { en, NS, zh, zhHant, type ConversationKey } from './locales.ts'
 import { CONVERSATION_SETTINGS_NAMESPACE, type ConversationSettings } from '../submission-settings.ts'
+import { createSessionViewTabs } from './view-roster.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -133,37 +132,14 @@ export function apply(ctx: Context): void {
     }),
   }, ThinkPreviewRow))
 
-  const viewTabs = (): ViewTab[] => {
-    const tabs: ViewTab[] = []
-    for (const entry of slots.entries('conversation.view')) {
-      /* v8 ignore next -- list registration validates id at load. */
-      if (entry.options.id === undefined) continue
-      tabs.push({
-        id: entry.options.id,
-        label: resolveSlotLabel(entry.options.label) ?? entry.options.id,
-      })
-    }
-    return tabs
+  const sessionViewTabs = (sessionId: SessionId | undefined) => {
+    const binding = sessionId === undefined ? undefined : sessions.binding(sessionId)
+    return createSessionViewTabs(
+      slots,
+      binding,
+      listener => ctx.locale.subscribe(listener),
+    )
   }
-  const conversationViews = createSnapshotStore<readonly ViewTab[]>(viewTabs())
-  const refreshViews = (): void => {
-    const current = conversationViews.getSnapshot()
-    const next = viewTabs()
-    if (current.length === next.length
-      && current.every((tab, index) => {
-        const candidate = next.at(index)
-        return candidate !== undefined && tab.id === candidate.id && tab.label === candidate.label
-      })) return
-    conversationViews.set(next)
-  }
-  ctx.effect(() => {
-    const disposeViews = slots.subscribe('conversation.view', refreshViews)
-    const disposeLocale = ctx.locale.subscribe(refreshViews)
-    return () => {
-      disposeLocale()
-      disposeViews()
-    }
-  }, 'ui-conversation: View roster')
 
   const inputHub = new InputHub(ctx, t)
   const composerBlocks = new ComposerBlockRegistry()
@@ -232,10 +208,11 @@ export function apply(ctx: Context): void {
     name: 'conversation.session',
     children: {
       'conversation.view': { kind: 'list', scope: 'session' },
+      'conversation.session.live': { kind: 'list', scope: 'session' },
     },
     store: conversationStore,
     inject: (sessionId: SessionId, _actions: BoundActions<typeof conversationStore>): ConversationSessionInjected => ({
-      hooks: { conversationViews },
+      hooks: { conversationViews: sessionViewTabs(sessionId) },
       bindDraftMirror: write => inputHub.shell(sessionId).bindMirror(write),
     }),
   }, ConversationSession)
@@ -249,8 +226,8 @@ export function apply(ctx: Context): void {
       'conversation.session.header.utilities': { kind: 'list', scope: 'session' },
     },
     store: conversationStore,
-    inject: (): ConversationSessionHeaderInjected => ({
-      hooks: { conversationViews },
+    inject: (sessionId: SessionId): ConversationSessionHeaderInjected => ({
+      hooks: { conversationViews: sessionViewTabs(sessionId) },
       open: (id) => { sessions.open(id) },
     }),
   }, ConversationSessionHeader)

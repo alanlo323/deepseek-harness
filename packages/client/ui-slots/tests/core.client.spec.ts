@@ -145,6 +145,14 @@ describe('kind semantics', () => {
     expect(core.entries('test.list').map(e => e.options.id)).toEqual(['a', 'b', 'c'])
   })
 
+  it('list: stores available on the entry when declared', () => {
+    const core = new SlotCore()
+    mountFrame(core)
+    const available = () => ({ getSnapshot: () => true, subscribe: () => () => {} })
+    core.register({ name: 'test.list', id: 'gated', available } as never, Comp)
+    expect(core.entries('test.list')[0]!.available).toBe(available)
+  })
+
   it('chain: missing select throws; select and priority land on the stored entry', () => {
     const core = new SlotCore()
     mountFrame(core)

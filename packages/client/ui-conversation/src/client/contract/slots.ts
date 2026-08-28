@@ -1,7 +1,7 @@
 /** Target-neutral Conversation slot declarations and composed component props. */
 import type { ReactNode, RefObject } from 'react'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
-import type { SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { SessionBinding, SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type {
   MaybeSnapshotSelectorHook, ObservableSnapshot, SnapshotSelectorHook,
@@ -114,7 +114,21 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
       owner: ConversationHeaderActionOwnerProps
     }
     /** Registered Conversation target Views, rendered one at a time. */
-    'conversation.view': { kind: 'list'; scope: 'session'; owner: ConvViewOwnerProps }
+    'conversation.view': {
+      kind: 'list'
+      scope: 'session'
+      owner: ConvViewOwnerProps
+      availableBinding: SessionBinding
+    }
+    /**
+     * Always-mounted per-Session observers. Entries render no chrome; they
+     * subscribe while the Session body is shown.
+     */
+    'conversation.session.live': {
+      kind: 'list'
+      scope: 'session'
+      owner: ConversationSessionLiveOwnerProps
+    }
     /** Selector-routed replacements for the current Session's resident composer. */
     'conversation.composer': { kind: 'chain'; scope: 'session'; owner: ComposerChainProps }
     /** Workspace picker shown by the blank-session Hero. */
@@ -203,6 +217,14 @@ export interface InputZone {
 export interface ConvViewOwnerProps {
   /** Focus request addressed to the selected View. */
   viewRequest: import('./views.ts').ConversationViewRequest | null
+  /** Select a View and address one opaque focus identity to it. */
+  openView: (view: string, focus: string) => void
+  /** Acknowledge the current one-shot focus request. */
+  completeViewRequest: () => void
+}
+
+/** Always-mounted Session observers receive View navigation. */
+export interface ConversationSessionLiveOwnerProps {
   /** Select a View and address one opaque focus identity to it. */
   openView: (view: string, focus: string) => void
   /** Acknowledge the current one-shot focus request. */
@@ -337,7 +359,7 @@ export type ConversationStore = ReturnType<typeof createConversationStore>
 /** Full props of the strict Session body. */
 export type ConversationSessionSlotProps =
   PropsRuntime<'conversation.session'>
-  & PropsRenderSlots<'conversation.view'>
+  & PropsRenderSlots<'conversation.view' | 'conversation.session.live'>
   & PropsStore<ConversationStore>
   & InjectFace<ConversationSessionInjected>
 

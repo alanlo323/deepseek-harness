@@ -16,7 +16,7 @@
  * may add node types this renderer has no mapping for.
  */
 
-import { Fragment, createElement } from 'react'
+import { Fragment, createElement, useState } from 'react'
 import type { Key, ReactNode } from 'react'
 import clsx from 'clsx'
 import type * as Md from 'mdast'
@@ -39,7 +39,12 @@ export interface MarkdownCodeLabels {
 export interface MarkdownLabels {
   code: MarkdownCodeLabels
   footnotes: string
+  /** Visible replacement when an `<img>` fails to load. */
+  imageFailed?: string
 }
+
+/** Optional image destination rewrite used by submitted-document views. */
+export type MarkdownResolveImageUrl = (url: string) => string | undefined
 
 function sanitizeUrl(url: string): string {
   try {
@@ -142,6 +147,8 @@ export interface MarkdownRenderContext {
   readonly footnoteOrder: string[]
   /** References rendered per identifier; drives the section's back-reference count. */
   readonly footnoteCounts: Map<string, number>
+  /** Rewrite a Markdown image destination; omitted keeps the HTTP(S)-only default. */
+  readonly resolveImageUrl?: MarkdownResolveImageUrl | undefined
 }
 
 /**
@@ -291,7 +298,7 @@ function renderNode(node: Md.RootContent, key: Key, context: MarkdownRenderConte
     case 'linkReference':
       return renderLinkReference(node, key, context)
     case 'image':
-      return renderImage(node.url, node.alt ?? '', key)
+      return renderImage(node.url, node.alt ?? '', key, context)
     case 'imageReference':
       return renderImageReference(node, key, context)
     case 'footnoteReference':
@@ -501,20 +508,45 @@ function inlineCodeHttpUrl(value: string): string | undefined {
   }
 }
 
-function renderImage(url: string, alt: string, key: Key): ReactNode {
-  const imageSrc = remoteImageUrl(sanitizeUrl(normalizeUri(url)))
+function renderImage(url: string, alt: string, key: Key, context: MarkdownRenderContext): ReactNode {
+  const normalized = normalizeUri(url)
+  const rewritten = context.resolveImageUrl?.(normalized)
+  const imageSrc = rewritten !== undefined && rewritten !== ''
+    ? rewritten
+    : remoteImageUrl(sanitizeUrl(normalized))
   if (imageSrc === undefined) {
     return <span key={key} className={css.imageAlt}>{alt}</span>
   }
   return (
-    <img
+    <MarkdownImage
       key={key}
-      className={css.image}
       src={imageSrc}
+      alt={alt}
+      failedLabel={context.labels.imageFailed}
+    />
+  )
+}
+
+function MarkdownImage({
+  src, alt, failedLabel,
+}: {
+  src: string
+  alt: string
+  failedLabel: string | undefined
+}): ReactNode {
+  const [failed, setFailed] = useState(false)
+  if (failed) {
+    return <span className={css.imageFailed}>{failedLabel ?? alt}</span>
+  }
+  return (
+    <img
+      className={css.image}
+      src={src}
       alt={alt}
       loading="lazy"
       decoding="async"
       referrerPolicy="no-referrer"
+      onError={() => { setFailed(true) }}
     />
   )
 }
@@ -549,7 +581,7 @@ function renderImageReference(
 ): ReactNode {
   const definition = context.targets.definitions.get(node.identifier.toUpperCase())
   if (definition === undefined) return `![${node.alt ?? ''}${referenceSuffix(node)}`
-  return renderImage(definition.url, node.alt ?? '', key)
+  return renderImage(definition.url, node.alt ?? '', key, context)
 }
 
 function renderFootnoteReference(

@@ -70,6 +70,8 @@ export interface ChatNodeOwnerProps {
   cwd?: string | undefined
   openFile: (path: string) => void
   inspectCall: (callId: ToolCallId) => void
+  /** Open a conversation view and address one opaque focus identity to it. */
+  openView?: ((view: string, focus: string) => void) | undefined
   forkAt: (seq: number) => void
   renderMessageImages: RenderMessageImages
   fileMentions: (owner: TurnTailOwnerProps) => MarkdownFileMentions | undefined

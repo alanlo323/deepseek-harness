@@ -50,7 +50,7 @@ export type {
   ComposerBarInjected, ComposerBarOwnerProps, ComposerBarProps, ComposerChainProps,
   ConversationHeaderActionOwnerProps, ConversationHeaderLineageOwnerProps,
   ConversationInjected, ConversationSessionHeaderInjected, ConversationSessionHeaderSlotProps,
-  ConversationSessionInjected, ConversationSessionSlotProps, ConversationSlotProps,
+  ConversationSessionInjected, ConversationSessionLiveOwnerProps, ConversationSessionSlotProps, ConversationSlotProps,
   ConversationStore, ConvViewOwnerProps, ConvViewProps, EmptyWorkspaceOwnerProps,
   HeroAgentPresetOwnerProps, HeroBrandMarkOwnerProps, InputControlOwnerProps, InputZone,
   MessageImageLoader, MessageImageSource, MessageImagesOwnerProps, RenderMessageImages, UseConversation,

@@ -15,7 +15,7 @@
  * The rule fires on the empty-map view, not on real redundancy. */
 import type { ReactNode } from 'react'
 import type {
-  BoundActions, HandleOf, PropsStore, SnapshotSelectorHook, StoreDecl,
+  BoundActions, HandleOf, ObservableSnapshot, PropsStore, SnapshotSelectorHook, StoreDecl,
 } from '@deepseek-ai/dsh-client-store'
 import type { HostObservable } from './renderer.ts'
 
@@ -491,7 +491,15 @@ export type KindOptions<
       label?: SlotLabel
       /** Cell shadowing rank (ascending, default 0, lowest renders; same id + same priority throws — see {@link SlotCore.register}). */
       priority?: number
-    }
+    } & (SlotMap[K] extends { availableBinding: infer Binding }
+      ? {
+        /**
+         * Per-session visibility of this list entry. The conversation shell
+         * hides the tab while the snapshot is false. Omitted = always listed.
+         */
+        available?: (binding: Binding) => ObservableSnapshot<boolean>
+      }
+      : {})
       : SlotMap[K]['kind'] extends 'chain' ? {
         /** Routing selector, mandatory on chain entries; `M` (the component's `matched` prop) infers from its return. */
         select: ChainSelect<SlotMap[K] extends { owner: infer O extends object } ? O : object, M>
@@ -557,6 +565,11 @@ export interface StoredEntry {
   options: { key?: string; id?: string; order?: number; label?: SlotLabel; priority?: number }
   /** Chain routing selector (type-erased like `inject`; present exactly on chain-slot entries). */
   select?: ((owner: never) => unknown) | undefined
+  /**
+   * Per-session list visibility. Present on conversation.view entries that
+   * declared `available`; the conversation shell evaluates it against the Session binding.
+   */
+  available?: ((binding: never) => ObservableSnapshot<boolean>) | undefined
   /** Registrant business face; positional params derive from the declaration (sessionId?, actions?). */
   inject?: ((...args: never[]) => Record<string, unknown>) | undefined
   /** Child-slot declaration table (declaration + authorization + runtime spec in one). */
@@ -593,6 +606,7 @@ interface ErasedOptions {
   order?: number | undefined
   label?: SlotLabel | undefined
   select?: ((owner: never) => unknown) | undefined
+  available?: ((binding: never) => ObservableSnapshot<boolean>) | undefined
   priority?: number | undefined
   children?: Record<string, SlotSpec<SlotEntryDef>> | undefined
   store?: StoreDecl | undefined
@@ -850,6 +864,7 @@ export class SlotCore {
         ...(options.priority !== undefined ? { priority: options.priority } : {}),
       },
       ...(options.select !== undefined ? { select: options.select } : {}),
+      ...(options.available !== undefined ? { available: options.available } : {}),
       ...(options.inject !== undefined ? { inject: options.inject } : {}),
       ...(options.children !== undefined ? { children: options.children } : {}),
       ...(options.store !== undefined ? { store: options.store } : {}),

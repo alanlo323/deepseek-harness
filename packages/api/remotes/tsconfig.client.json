@@ -40,6 +40,9 @@
       "path": "../../feedback/message-feedback"
     },
     {
+      "path": "../../document/document-host"
+    },
+    {
       "path": "../../host/plugin-inventory"
     },
     {

@@ -48,6 +48,7 @@ function props(
     selectedCallId,
     openFile: vi.fn(),
     inspectCall: vi.fn(),
+    openView: vi.fn(),
     forkAt: vi.fn(),
     fileMentions: vi.fn(),
     useConnectionGeneration: (selector => selector(generation)) as ToolTreeProps['useConnectionGeneration'],

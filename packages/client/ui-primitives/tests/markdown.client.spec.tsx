@@ -289,6 +289,28 @@ describe('MarkdownText', () => {
     }
   })
 
+  it('rewrites image destinations through resolveImageUrl and shows a failure label on load error', () => {
+    const { container } = render(
+      <MarkdownText
+        text={'![workspace figure](images/a.png)\n\n![remote figure](https://example.com/keep.png)'}
+        labels={{
+          code: { copyLabel: 'Copy', copiedLabel: 'Copied' },
+          footnotes: 'Footnotes',
+          imageFailed: 'Image failed to load',
+        }}
+        resolveImageUrl={src => src === 'images/a.png' ? '/api/submitted-document-image?imageRef=out%2Fa.png' : undefined}
+      />,
+    )
+    const images = [...container.querySelectorAll('img')]
+    expect(images.map(image => image.getAttribute('src'))).toEqual([
+      '/api/submitted-document-image?imageRef=out%2Fa.png',
+      'https://example.com/keep.png',
+    ])
+    fireEvent.error(images[0] as HTMLImageElement)
+    expect(screen.getByText('Image failed to load')).toBeTruthy()
+    expect(container.querySelector('img')?.getAttribute('src')).toBe('https://example.com/keep.png')
+  })
+
   it('neutralizes raw HTML, unsafe or relative links, and unsupported images', () => {
     const markdown = [
       '<script>globalThis.compromised = true</script>',

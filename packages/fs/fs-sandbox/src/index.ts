@@ -144,4 +144,6 @@ export class SandboxedFileSystem extends LocalFileSystem {
   }
 }
 
+export { isPathUnder } from './containment.ts'
+
 export default SandboxedFileSystem

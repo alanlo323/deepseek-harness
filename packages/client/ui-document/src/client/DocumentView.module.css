@@ -1,0 +1,91 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+}
+
+.select {
+  min-width: 0;
+  flex: 1 1 160px;
+  max-width: 360px;
+  height: 28px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-base);
+  color: inherit;
+}
+
+.source {
+  display: flex;
+  gap: 4px;
+}
+
+.source button {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-base);
+  color: inherit;
+  cursor: pointer;
+}
+
+.source button[data-active='true'] {
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 20px calc(var(--dsh-composer-height, 152px) + 16px);
+}
+
+.status {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
+}
+
+.cardTitle {
+  font-size: 13px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.cardSummary {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.open {
+  align-self: flex-start;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-base);
+  color: inherit;
+  cursor: pointer;
+}
