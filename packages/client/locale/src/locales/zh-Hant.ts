@@ -34,7 +34,6 @@ export const zhHant = {
   'unknown': '未知',
   'none': '無',
   'truncated': '已截斷',
-  'connection.reconnecting': '連線已斷開，正在重連…',
   'json.collapseNode': '收合 JSON 節點',
   'json.expandNode': '展開 JSON 節點',
   'json.label': 'JSON',

@@ -25,7 +25,13 @@ export const zhHant = {
   'openDocument': '打開配置檔案',
   'openDocument.error': '無法打開配置檔案',
   'general.nav': '通用設定',
-}
+  'connection.error': '連線異常',
+  'connection.retry': '立即重連',
+  'connection.connecting': '連線中',
+  'connection.connected': '連線成功',
+  'connection.reconnect': '連線異常，點擊立即重連',
+  'connection.restart': '連線中，點擊立即重連',
+} satisfies typeof zh
 
 /** The settings namespace key union. */
 export type SettingsKey = keyof typeof zh

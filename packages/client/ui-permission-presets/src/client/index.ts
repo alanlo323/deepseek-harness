@@ -112,6 +112,9 @@ export function apply(ctx: ClientContext): void {
         'confirm.enable': accessEn['confirm.enable'],
       }),
       ctx.locale.register(ACCESS_NS, 'zh-Hant', {
+        'preset.readOnly': accessZhHant['preset.readOnly'],
+        'preset.workspaceWrite': accessZhHant['preset.workspaceWrite'],
+        'preset.fullAccess': accessZhHant['preset.fullAccess'],
         'confirm.title': accessZhHant['confirm.title'],
         'confirm.description': accessZhHant['confirm.description'],
         'confirm.acknowledge': accessZhHant['confirm.acknowledge'],

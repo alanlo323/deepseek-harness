@@ -125,6 +125,7 @@ export const zhHant = {
   'status.planReview': '計劃待審',
   'status.waitingAnswer': '等待回答',
   'status.completed': '已完成',
+  'schedule.active': '有活動定時任務',
   'hover.created': '建立於 {time}',
   'hover.copied': '已複製',
   'date.ymd': '{y}年{m}月{d}日',

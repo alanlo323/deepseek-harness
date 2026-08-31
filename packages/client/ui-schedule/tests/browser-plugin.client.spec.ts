@@ -7,7 +7,7 @@ import { apply as applyLocale, inject as localeInject } from '@deepseek-ai/dsh-c
 import { apply, inject } from '../src/client/index.ts'
 import { apply as applyNode } from '../src/index.ts'
 import * as ScheduleInvariant from '../src/invariant.ts'
-import { en, NS, zh } from '../src/client/locales.ts'
+import { en, NS, zh, zhHant } from '../src/client/locales.ts'
 
 const Empty = () => null
 
@@ -70,9 +70,12 @@ describe('ui-schedule browser half', () => {
     await fiber.await()
     const translate = ctx.locale.bind(NS)
     expect(translate('list.aria')).toBe(zh['list.aria'])
+    ctx.locale.setLocale('zh-Hant')
+    expect(translate('list.aria')).toBe(zhHant['list.aria'])
     ctx.locale.setLocale('en')
     expect(translate('list.aria')).toBe(en['list.aria'])
     expect(Object.keys(en).sort()).toEqual(Object.keys(zh).sort())
+    expect(Object.keys(zhHant).sort()).toEqual(Object.keys(zh).sort())
 
     await fiber.dispose()
     expect(translate('list.aria')).not.toBe(en['list.aria'])
