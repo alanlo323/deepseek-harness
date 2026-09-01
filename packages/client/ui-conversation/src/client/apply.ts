@@ -14,7 +14,7 @@ import type {
   ConversationSessionInjected,
 } from './contract/slots.ts'
 import type { InputNotice } from './contract/input.ts'
-import { createConversationStore } from './stores.ts'
+import { createConversationStore, readConversationViewPreference } from './stores.ts'
 import { ConversationController, UnsupportedImageMediaTypeError } from './service.ts'
 import type { IConversation } from './service.ts'
 import { ComposerBlockRegistry } from './input/blocks.ts'
@@ -31,6 +31,7 @@ import { ConversationRoot } from './skeleton/ConversationRoot.tsx'
 import { ConversationSession, ConversationSessionHeader } from './skeleton/ConversationSession.tsx'
 import { InputBar } from './skeleton/InputBar.tsx'
 import { todoDockEntry } from './skeleton/TodoPanel.tsx'
+import { resolveActiveView } from './view-selection.ts'
 import { en, NS, zh, zhHant, type ConversationKey } from './locales.ts'
 import { CONVERSATION_SETTINGS_NAMESPACE, type ConversationSettings } from '../submission-settings.ts'
 import { createSessionViewTabs } from './view-roster.ts'
@@ -140,6 +141,35 @@ export function apply(ctx: Context): void {
       listener => ctx.locale.subscribe(listener),
     )
   }
+  const activateView = (sessionId: SessionId, preferred: string | null): void => {
+    const active = resolveActiveView(sessionViewTabs(sessionId).getSnapshot(), preferred)
+    if (active !== undefined) uiConversation.binding(sessionId).activate(active.id)
+  }
+  const restoreView = (sessionId: SessionId): void => {
+    activateView(sessionId, readConversationViewPreference(sessionId))
+  }
+  const restoreCurrentView = (): void => {
+    const sessionId = sessions.list.getSnapshot().current
+    if (sessionId !== undefined && sessions.binding(sessionId) !== undefined) {
+      restoreView(sessionId)
+    }
+  }
+  ctx.effect(() => {
+    let currentSessionId = sessions.list.getSnapshot().current
+    const disposeViews = slots.subscribe('conversation.view', restoreCurrentView)
+    const disposeLocale = ctx.locale.subscribe(restoreCurrentView)
+    const disposeCurrent = sessions.list.subscribe(() => {
+      const nextSessionId = sessions.list.getSnapshot().current
+      if (nextSessionId === currentSessionId) return
+      currentSessionId = nextSessionId
+      restoreCurrentView()
+    })
+    return () => {
+      disposeCurrent()
+      disposeLocale()
+      disposeViews()
+    }
+  }, 'ui-conversation: View selection')
 
   const inputHub = new InputHub(ctx, t)
   const composerBlocks = new ComposerBlockRegistry()
@@ -151,9 +181,11 @@ export function apply(ctx: Context): void {
     props: ['inputActions'],
     resolve: (binding) => {
       const shell = inputHub.shellFor(binding)
+      const conversation = uiConversation.binding(binding)
+      restoreView(binding.sessionId)
       return {
         hooks: {
-          conversation: uiConversation.binding(binding).snapshot,
+          conversation: conversation.snapshot,
           input: shell.state,
         },
         props: { inputActions: shell.actions },
@@ -211,9 +243,13 @@ export function apply(ctx: Context): void {
       'conversation.session.live': { kind: 'list', scope: 'session' },
     },
     store: conversationStore,
-    inject: (sessionId: SessionId, _actions: BoundActions<typeof conversationStore>): ConversationSessionInjected => ({
+    inject: (sessionId: SessionId, actions: BoundActions<typeof conversationStore>): ConversationSessionInjected => ({
       hooks: { conversationViews: sessionViewTabs(sessionId) },
       bindDraftMirror: write => inputHub.shell(sessionId).bindMirror(write),
+      openView: (view, focus) => {
+        activateView(sessionId, view)
+        actions.openView(view, focus)
+      },
     }),
   }, ConversationSession)
 
@@ -226,9 +262,13 @@ export function apply(ctx: Context): void {
       'conversation.session.header.utilities': { kind: 'list', scope: 'session' },
     },
     store: conversationStore,
-    inject: (sessionId: SessionId): ConversationSessionHeaderInjected => ({
+    inject: (sessionId: SessionId, actions: BoundActions<typeof conversationStore>): ConversationSessionHeaderInjected => ({
       hooks: { conversationViews: sessionViewTabs(sessionId) },
       open: (id) => { sessions.open(id) },
+      selectView: (view) => {
+        activateView(sessionId, view)
+        actions.setView(view)
+      },
     }),
   }, ConversationSessionHeader)
 
