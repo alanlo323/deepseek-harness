@@ -148,6 +148,7 @@ export const zhHant = {
   'chat.deepDiving': '深度求索中...',
   'chat.turnNavigation.label': '輪次導航',
   'chat.turnNavigation.jump': '跳轉到第 {turn} 輪',
+  'chat.turnNavigation.jumpLoad': '載入並跳轉到第 {turn} 輪',
   'chat.turnNavigation.turn': '第 {turn} 輪',
   'settings.transcript.title': '對話顯示',
   'settings.transcript.description': '控制已完成輪次的過程內容',

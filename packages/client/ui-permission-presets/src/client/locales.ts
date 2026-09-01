@@ -24,7 +24,7 @@ export const zhHant = {
   'loading': '載入中',
   'unavailable': '不可用',
   'preset.readOnly': '僅可查看',
-  'preset.workspaceWrite': '可寫入工作區',
+  'preset.workspaceWrite': '工作區內修改',
   'preset.fullAccess': '完全權限',
   'confirm.title': '確認啟用 Full access？',
   'confirm.description': '啟用 Full access 後，新會話將減少確認步驟，並且可以直接執行更多操作，包括敏感操作、檔案修改或外部命令。僅建議在你信任後續任務時使用。',
@@ -68,7 +68,7 @@ export const accessZh = {
 /** Traditional Chinese dictionary, checked complete against the zh key set. */
 export const accessZhHant = {
   'preset.readOnly': '僅可查看',
-  'preset.workspaceWrite': '可寫入工作區',
+  'preset.workspaceWrite': '工作區內修改',
   'preset.fullAccess': '完全權限',
   'confirm.title': '確認啟用 Full access？',
   'confirm.description': '啟用 Full access 後，agent 將減少確認步驟，並且可以直接執行更多操作，包括敏感操作、檔案修改或外部命令。僅建議在你信任當前任務時使用。',
