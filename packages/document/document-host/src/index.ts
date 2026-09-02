@@ -47,9 +47,10 @@ interface HostConnection {
 }
 
 function metaForCall(session: Session, callId: string): SubmittedDocumentMeta | undefined {
-  for (let index = session.events.length - 1; index >= 0; index -= 1) {
-    const event = session.events.at(index)
-    /* v8 ignore next -- session.events is a dense append-only array */
+  const events = session.snapshotEvents()
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const event = events.at(index)
+    /* v8 ignore next -- snapshotEvents is a dense append-only array */
     if (event === undefined) continue
     if (event.type !== 'tool/result') continue
     if (toolResultCallId(event.data.message.content[0]) !== callId) continue

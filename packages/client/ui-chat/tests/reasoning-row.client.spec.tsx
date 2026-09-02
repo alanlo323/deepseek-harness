@@ -52,7 +52,6 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
-  vi.unstubAllGlobals()
 })
 
 const t = makeTranslate(zh, commonZh)

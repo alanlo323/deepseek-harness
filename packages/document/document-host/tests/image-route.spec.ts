@@ -26,6 +26,7 @@ function deps(cwd: string | undefined, records: readonly {
       version: 0,
       id: SessionId('s1'),
       createdAt: 1,
+      isSeeded: false,
       cwd,
     })
   return {

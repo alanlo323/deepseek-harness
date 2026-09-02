@@ -20,6 +20,7 @@ function agentWithCwd(cwd: string | undefined, id = 'present-1'): Agent & { sess
     version: SESSION_FORMAT_VERSION,
     id: sessionId,
     createdAt: 1,
+    isSeeded: false,
     ...cwd !== undefined ? { cwd } : {},
   })
   return { id: sessionId, session } as unknown as Agent & { session: Session }
