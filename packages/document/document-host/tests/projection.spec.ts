@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import { SessionSeq, type SessionEvent } from '@deepseek-ai/dsh-session'
 import { createUserMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
 import { SUBMITTED_DOCUMENT_KIND } from '@deepseek-ai/dsh-document-core'
 import { applySubmittedDocuments, toolResultCallId } from '../src/projection.ts'
 
-function resultEvent(callId: string, meta: unknown, isError = false): SessionEvent {
+function resultEvent(callId: string, meta: unknown, isError = false, seq = SessionSeq(1)): SessionEvent {
   return {
     type: 'tool/result',
-    seq: 1,
+    seq,
     time: 1,
     data: {
       turn: 1,
@@ -58,17 +58,14 @@ describe('submittedDocuments projection', () => {
       images: [{ ref: 'out/a.png', mediaType: 'image/png' }],
     }])
 
-    const replaced = applySubmittedDocuments(ok, {
-      ...resultEvent('c3', {
-        kind: SUBMITTED_DOCUMENT_KIND,
-        title: 'Updated',
-        logicalPath: 'out/report.md',
-        byteLength: 4,
-        images: [],
-        truncated: false,
-      }),
-      seq: 2,
-    })
+    const replaced = applySubmittedDocuments(ok, resultEvent('c3', {
+      kind: SUBMITTED_DOCUMENT_KIND,
+      title: 'Updated',
+      logicalPath: 'out/report.md',
+      byteLength: 4,
+      images: [],
+      truncated: false,
+    }, false, SessionSeq(2)))
     expect(replaced).toEqual([{
       callId: 'c3',
       seq: 2,
