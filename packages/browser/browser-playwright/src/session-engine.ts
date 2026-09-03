@@ -61,6 +61,13 @@ export class SessionEngine {
   #opAbort: AbortController | undefined
   #epoch = 0
   #drain: Promise<void> = Promise.resolve()
+  // Explicit fields, not constructor parameter properties: the engine child
+  // loads this module under Node's native strip-only mode, which rejects
+  // non-erasable syntax.
+  private readonly playwright: PlaywrightLike
+  private readonly config: ResolvedPlaywrightConfig
+  private readonly onFrame: (frame: ScreencastFrameInput) => void
+  private readonly onDead: () => void
 
   /**
    * @param playwright - Playwright module or test fake.
@@ -69,11 +76,16 @@ export class SessionEngine {
    * @param onDead - page rebuild failed; the Host must drop occupancy.
    */
   constructor(
-    private readonly playwright: PlaywrightLike,
-    private readonly config: ResolvedPlaywrightConfig,
-    private readonly onFrame: (frame: ScreencastFrameInput) => void,
-    private readonly onDead: () => void = () => {},
-  ) {}
+    playwright: PlaywrightLike,
+    config: ResolvedPlaywrightConfig,
+    onFrame: (frame: ScreencastFrameInput) => void,
+    onDead: () => void = () => {},
+  ) {
+    this.playwright = playwright
+    this.config = config
+    this.onFrame = onFrame
+    this.onDead = onDead
+  }
 
   /**
    * Launch headless Chromium, one context, one page, and start screencast.

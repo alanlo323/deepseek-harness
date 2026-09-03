@@ -1,6 +1,9 @@
 /**
  * Unbuilt worker `execArgv`: enable Node type stripping when the host has
  * native TypeScript off, without inheriting host loaders.
+ * The worker graph (`worker.ts` and its value imports) must stay erasable
+ * under Node strip-only TypeScript: constructor parameter properties crash
+ * the child before `browser_open` can run.
  * @module @deepseek-ai/dsh-browser-playwright/spawn
  */
 

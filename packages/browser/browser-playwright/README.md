@@ -48,6 +48,6 @@ None; this package neither assembles nor sends a provider request.
 <details>
 <summary>Working context for maintainers — click to expand</summary>
 
-None.
+The unbuilt engine child (`worker.ts`) loads under Node strip-only TypeScript, not tsx. Constructor parameter properties in that import graph crash `browser_open` with `BROWSER_ENGINE_EXIT`. See [the strip-only child note](../../../.agents/notes/implemented/bug-fix/2026-09-03-browser-engine-strip-only-source.md).
 
 </details>

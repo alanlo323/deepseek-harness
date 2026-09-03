@@ -48,6 +48,6 @@ kind: "package-reference"
 <details>
 <summary>维护者的工作上下文——点击展开</summary>
 
-无。
+未构建的引擎子进程（`worker.ts`）在 Node 的 strip-only TypeScript 下加载，而不是 tsx。该 import 图里的 constructor parameter properties 会让 `browser_open` 以 `BROWSER_ENGINE_EXIT` 崩溃。见[strip-only 子进程笔记](../../../.agents/notes/implemented/bug-fix/2026-09-03-browser-engine-strip-only-source.zh.md)。
 
 </details>

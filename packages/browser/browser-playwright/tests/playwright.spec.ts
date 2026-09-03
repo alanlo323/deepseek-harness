@@ -292,6 +292,35 @@ describe('forkEngineChild', () => {
       child.kill()
     })
   })
+
+  it('keeps the source worker alive under strip-only TypeScript', async () => {
+    const worker = resolveEngineWorker(fileURLToPath(new URL('../src/provider.ts', import.meta.url)))
+    const child = forkEngineChild(worker.file, sourceWorkerExecArgv(false), {
+      ...process.env,
+      DSH_BROWSER_PLAYWRIGHT_CONFIG: JSON.stringify({
+        screencastFps: 10,
+        screencastQuality: 50,
+        maxWallMs: 1000,
+        maxResultBytes: 64,
+        closeTimeoutMs: 20,
+      }),
+    })
+    try {
+      const outcome = await Promise.race([
+        new Promise<string>((resolve) => {
+          child.once('exit', (code, signal) => {
+            resolve(`exited:${String(code)}:${String(signal)}`)
+          })
+        }),
+        new Promise<string>((resolve) => {
+          setTimeout(() => { resolve('alive') }, 2000)
+        }),
+      ])
+      expect(outcome).toBe('alive')
+    } finally {
+      child.kill()
+    }
+  })
 })
 
 describe('apply', () => {
