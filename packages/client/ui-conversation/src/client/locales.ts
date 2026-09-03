@@ -260,6 +260,7 @@ export const zhHant = {
   'tool.title.stopCordis': '停止 Cordis 插件',
   'tool.title.removeCordis': '移除 Cordis 插件',
   'tool.title.pwsh': 'Pwsh',
+  'tool.title.readImage': '讀取圖片',
   'tool.title.grep': 'Grep',
   'tool.title.glob': 'Glob',
   'tool.title.webSearch': '網頁搜索',
