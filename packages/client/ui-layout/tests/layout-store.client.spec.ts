@@ -8,6 +8,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createLayoutStore } from '@deepseek-ai/dsh-client-ui-layout/src/client/stores.ts'
 import {
+  BROWSER_DEFAULT, BROWSER_MAX, BROWSER_MIN,
   DETAILS_DEFAULT, DETAILS_MAX, DETAILS_MIN,
   SIDEBAR_DEFAULT, SIDEBAR_MAX, SIDEBAR_MIN,
 } from '@deepseek-ai/dsh-client-ui-layout/src/client/columns.ts'
@@ -19,7 +20,9 @@ beforeEach(() => { localStorage.clear() })
 describe('createLayoutStore', () => {
   it('initializes the sidebar at its default width, details closed, wide viewport assumed', () => {
     const { store } = createLayoutStore().create()
-    expect(store.getSnapshot()).toEqual({ sidebar: SIDEBAR_DEFAULT, details: 0, narrow: false, narrowExpanded: false })
+    expect(store.getSnapshot()).toEqual({
+      sidebar: SIDEBAR_DEFAULT, details: 0, browser: 0, narrow: false, narrowExpanded: false,
+    })
   })
 
   it('each create() is an independent instance (factory is not a singleton)', () => {
@@ -55,7 +58,9 @@ describe('createLayoutStore', () => {
     actions.setSidebar(400)
     actions.setNarrow(true)
     actions.toggleSidebar()
-    expect(store.getSnapshot()).toEqual({ sidebar: 400, details: 0, narrow: true, narrowExpanded: true })
+    expect(store.getSnapshot()).toEqual({
+      sidebar: 400, details: 0, browser: 0, narrow: true, narrowExpanded: true,
+    })
     actions.toggleSidebar()
     expect(store.getSnapshot().narrowExpanded).toBe(false)
     expect(store.getSnapshot().sidebar).toBe(400)
@@ -85,6 +90,25 @@ describe('createLayoutStore', () => {
     expect(store.getSnapshot().details).toBe(0)
   })
 
+  it('openBrowser uses the contract default, preserves an open width, and closeBrowser zeroes', () => {
+    const { store, actions } = createLayoutStore().create()
+    actions.openBrowser()
+    expect(store.getSnapshot().browser).toBe(BROWSER_DEFAULT)
+    actions.setBrowser(400)
+    actions.openBrowser()
+    expect(store.getSnapshot().browser).toBe(400)
+    actions.closeBrowser()
+    expect(store.getSnapshot().browser).toBe(0)
+  })
+
+  it('setBrowser clamps into the contract range', () => {
+    const { store, actions } = createLayoutStore().create()
+    actions.setBrowser(1)
+    expect(store.getSnapshot().browser).toBe(BROWSER_MIN)
+    actions.setBrowser(9999)
+    expect(store.getSnapshot().browser).toBe(BROWSER_MAX)
+  })
+
   it('does not persist panel geometry', () => {
     const first = createLayoutStore().create()
     first.actions.setSidebar(400)
@@ -96,6 +120,7 @@ describe('createLayoutStore', () => {
     expect(second.store.getSnapshot()).toEqual({
       sidebar: SIDEBAR_DEFAULT,
       details: 0,
+      browser: 0,
       narrow: false,
       narrowExpanded: false,
     })

@@ -42,9 +42,28 @@
   border-left: 0.5px solid var(--dsw-alias-border-l3);
 }
 
+.browserCol {
+  min-width: 0;
+  overflow: hidden;
+  border-left: 0.5px solid var(--dsw-alias-border-l3);
+}
+
+.browserCol[data-mode='strip'] {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  overflow: hidden;
+}
+
 /* The details subtree stays mounted at zero width, so its border must not paint
    a 1px seam. The collapsed sidebar instead retains a bordered compact rail. */
 .frame[data-details-collapsed] .detailsCol {
+  border-left: none;
+}
+
+.frame[data-browser-collapsed]:not([data-browser-strip]) .browserCol {
   border-left: none;
 }
 
@@ -75,7 +94,8 @@
   }
 }
 
-.handle[data-side='details']::after {
+.handle[data-side='details']::after,
+.handle[data-side='browser']::after {
   content: '';
   position: absolute;
   top: 50%;
@@ -97,12 +117,17 @@
 
 .detailsCol:hover ~ .handle[data-side='details']::after,
 .handle[data-side='details']:hover::after,
-.handle[data-side='details'][data-dragging='true']::after {
+.handle[data-side='details'][data-dragging='true']::after,
+.browserCol:hover ~ .handle[data-side='browser']::after,
+.handle[data-side='browser']:hover::after,
+.handle[data-side='browser'][data-dragging='true']::after {
   opacity: 1;
 }
 
 .handle[data-side='details']:hover::after,
-.handle[data-side='details'][data-dragging='true']::after {
+.handle[data-side='details'][data-dragging='true']::after,
+.handle[data-side='browser']:hover::after,
+.handle[data-side='browser'][data-dragging='true']::after {
   background: var(--dsw-alias-button-floating-hover);
   border-color: var(--dsw-alias-border-l3);
 }

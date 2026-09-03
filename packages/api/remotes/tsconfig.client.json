@@ -43,6 +43,9 @@
       "path": "../../document/document-host"
     },
     {
+      "path": "../../browser/browser-host"
+    },
+    {
       "path": "../../host/plugin-inventory"
     },
     {

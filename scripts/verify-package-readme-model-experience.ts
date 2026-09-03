@@ -103,6 +103,7 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/client/ui-user-questions': { kind: 'indirect', reason: 'The package mounts dsh-tool-ask-user; that tool owns the model-visible schema and answer rendering.' },
   'packages/client/ui-trajectory': { kind: 'none', reason: 'Browser-side UI plugin layer; registers nothing model-facing.' },
   'packages/client/ui-document': { kind: 'none', reason: 'Browser-side Report view and present_document card; the present_document tool owns every model-facing schema and result.' },
+  'packages/client/ui-browser': { kind: 'none', reason: 'Browser-side watch-only viewport; dsh-tool-browser owns every model-facing schema and result.' },
   'packages/client/ui-workspace': { kind: 'none', reason: 'Browser-side UI plugin layer; registers nothing model-facing.' },
   'packages/client/ui-directory-picker-browse': { kind: 'none', reason: 'Browser-side directory-browsing surface; registers nothing model-facing.' },
   'packages/client/ui-directory-picker-native': { kind: 'none', reason: 'Browser-side surface driving the host OS chooser; registers nothing model-facing.' },
@@ -185,6 +186,9 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/web/web': { kind: 'indirect', reason: 'The provider registry delegates model rendering to dsh-tool-web.' },
   'packages/web/web-fetch-http': { kind: 'indirect', reason: 'The provider backend delegates model rendering to dsh-tool-web.' },
   'packages/web/web-search-exa': { kind: 'indirect', reason: 'The provider backend delegates model rendering to dsh-tool-web.' },
+  'packages/browser/browser': { kind: 'indirect', reason: 'The Browser Session seam delegates model rendering to dsh-tool-browser.' },
+  'packages/browser/browser-playwright': { kind: 'indirect', reason: 'The Playwright backend delegates model rendering to dsh-tool-browser.' },
+  'packages/browser/browser-host': { kind: 'none', reason: 'Host projection and screencast Remote; dsh-tool-browser owns every model-facing schema and result.' },
   'packages/workflow/workflow': { kind: 'indirect', reason: 'The service delegates parent and child model rendering to its consumer and engine.' },
 }
 

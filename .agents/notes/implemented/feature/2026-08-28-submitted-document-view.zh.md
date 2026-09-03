@@ -28,7 +28,7 @@ execute 的返回值不是回放快照。agent loop（智能体循环）持久�
 
 ## 备选方案
 
-**`ui-layout` 第四栏。**否决：会在 Chat 与 Details 旁再加一个根子项，并与既有对话视图条冲突。
+**`ui-layout` 第四栏。**就此报告标签页否决：会在 Chat 与 Details 旁再加一个根子项，并与既有对话视图条冲突。Browser Session 视口占用 `browser` 栏做仅供观看的 Chromium 预览，并不重开该决定（[browser 视口](2026-09-03-browser-viewport-sidebar.zh.md)）。
 
 **只在工具卡片内渲染 Markdown。**否决：用户需要 hydrate 之后可重开的标签页，而不是沉进 transcript 的卡片。
 

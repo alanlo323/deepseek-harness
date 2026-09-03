@@ -44,6 +44,7 @@
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`、`owning Agent session` | `tool/call`、`todo/write`、`tool/result` | - | todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为检查清单。`allowParallelInProgress` 是没有默认值的必填项，因此本目录明确选择 `true`，对应描述允许同时存在多个 `in_progress` 项。选择 `false` 的部署会获得同一工具，但描述会要求只能有 1 个活动任务。 |
 | `@deepseek-ai/dsh-tool-present-document` | `present_document` | `ctx.tools`、`owning Agent session at execute time` | `tool/call`、`tool/result` | - | present_document 由会写最终 Markdown 报告的 agent preset 挂载，而不是随产品发布的默认组合。成功调用会把 submitted-document 快照存到 tool/result meta；Web 报告标签页仅在该次成功之后出现。 |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`、`ctx.workflowEngine`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents the script children)` | `tool/call`、`tool/result` | - | - |
+| `@deepseek-ai/dsh-tool-browser` | `browser_close`、`browser_open`、`browser_run` | `ctx.tools`、`ctx.browser`、`ctx.systemPrompt` | `tool/call`、`tool/result with browser-session meta` | - | 仅 Web profile。browser_open / browser_run / browser_close 共用一个进程级 Browser Session。JPEG 截屏帧不会出现在工具结果或会话日志中。 |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`、`web_search` | `ctx.tools`、`ctx.web`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。 |
 
 <a id="deepseek-aidsh-tool-ask-user"></a>
@@ -2212,6 +2213,59 @@ present_document 由会写最终 Markdown 报告的 agent preset 挂载，而不
 ```
 
 来源：[`packages/workflow/tool-workflow/src/index.ts`](../packages/workflow/tool-workflow/src/index.ts)
+
+<a id="deepseek-aidsh-tool-browser"></a>
+
+## `@deepseek-ai/dsh-tool-browser`
+
+### `browser_close`
+
+关闭当前打开的无头 Chromium Browser Session。
+
+```json
+{
+  "type": "object",
+  "properties": {}
+}
+```
+
+来源：[`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `browser_open`
+
+为本进程打开唯一的无头 Chromium Browser Session。
+
+```json
+{
+  "type": "object",
+  "properties": {}
+}
+```
+
+来源：[`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+### `browser_run`
+
+对已打开 Browser Session 的页面运行 Playwright 脚本函数体。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "script": {
+      "type": "string",
+      "description": "Playwright script body. `page`, `browser`, `context`, and `playwright` are in scope. Return JSON."
+    }
+  },
+  "required": [
+    "script"
+  ]
+}
+```
+
+来源：[`packages/browser/tool-browser/src/index.ts`](../packages/browser/tool-browser/src/index.ts)
+
+仅 Web profile。browser_open / browser_run / browser_close 共用一个进程级 Browser Session。JPEG 截屏帧不会出现在工具结果或会话日志中。
 
 <a id="deepseek-aidsh-tool-web"></a>
 

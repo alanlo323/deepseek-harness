@@ -549,6 +549,62 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'browser',
+    summary: 'The Browser Session service.',
+    description: 'The Browser Session service. Registered as `ctx.browser` (one instance per context).',
+    methods: [
+      {
+        signature: 'registerProvider(provider: BrowserProvider): () => void',
+        description: 'Register a Browser Session provider. Duplicate ids throw.',
+        parameters: [{ name: 'provider', description: 'backend that owns Chromium lifecycle.' }],
+        returns: 'disposer that unregisters the provider.',
+      },
+      {
+        signature: 'async open(signal: AbortSignal): Promise<BrowserSessionId>',
+        description: 'Open the single v1 Browser Session.',
+        parameters: [{ name: 'signal', description: 'cooperative cancellation for launch.' }],
+        returns: 'the new Browser Session id.',
+      },
+      {
+        signature: 'async run(script: string, signal: AbortSignal): Promise<JsonValue>',
+        description: 'Run a script against the open session\'s shared page.',
+        parameters: [{ name: 'script', description: 'Playwright script body.' }, { name: 'signal', description: 'cooperative cancellation for this run.' }],
+        returns: 'JSON-serializable script result.',
+      },
+      {
+        signature: 'async close(): Promise<BrowserSessionId>',
+        description: 'Close the open Browser Session.',
+        parameters: [],
+        returns: 'the closed Browser Session id.',
+      },
+      {
+        signature: 'currentSessionId(): BrowserSessionId | undefined',
+        description: 'Identity of the open Browser Session, or `undefined` when closed.',
+        parameters: [],
+        returns: 'the live id, or `undefined`.',
+      },
+      {
+        signature: 'subscribeScreencast( browserSessionId: string, dshSessionId: string, signal: AbortSignal, ): AsyncIterable<ScreencastFrame>',
+        description: 'Subscribe to screencast JPEG frames for one Browser Session. The queue holds at most one pending frame; a slow consumer drops older frames.',
+        parameters: [{ name: 'browserSessionId', description: 'must match the open session.' }, { name: 'dshSessionId', description: 'stamped onto every yielded frame.' }, { name: 'signal', description: 'ends the iterator when aborted.' }],
+        returns: 'async iterable of JSON screencast items.',
+      },
+    ],
+  },
+  {
+    key: 'browserHost',
+    summary: 'Host service backing `ctx.remote.browser`.',
+    description: 'Host service backing `ctx.remote.browser`.',
+    methods: [
+      {
+        signature: '@Remote({ mode: \'stream\' }) screencast(request: ScreencastRequest, signal: AbortSignal): AsyncIterable<ScreencastFrame>',
+        description: 'Stream JPEG screencast frames for one Browser Session. Watch-only: this Remote never sends CDP Input commands.',
+        parameters: [{ name: 'request', description: 'DSH Session and Browser Session identities.' }, { name: 'signal', description: 'cancellation owned by the Remote stream carrier.' }],
+        returns: 'JSON screencast items.',
+      },
+    ],
+  },
+  {
     key: 'clientModules',
     summary: 'The web plugin table service: incremental `dsh.client` scan + wire composition + bundle route + index injection rows.',
     description: 'The web plugin table service: incremental `dsh.client` scan + wire composition + bundle route + index injection rows. Construction runs the activation scan synchronously — a malformed declaration or missing bundle among the already-loaded entries aggregates into one loud throw (FAILED fiber; the boot activation audit reports it).',
@@ -3586,6 +3642,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type BrandedNumber<B extends string> = number & {\n    readonly [BRAND]: B;\n};',
   },
   {
+    name: 'BrowserProvider',
+    declaration: 'export interface BrowserProvider {\n    readonly id: string;\n    open(signal: AbortSignal): Promise<void>;\n    run(script: string, signal: AbortSignal): Promise<JsonValue>;\n    close(): Promise<void>;\n    subscribeFrames(onFrame: (frame: ScreencastFrameInput) => void): () => void;\n}',
+  },
+  {
+    name: 'BrowserSessionId',
+    declaration: 'export type BrowserSessionId = Branded<\'BrowserSessionId\'>;',
+  },
+  {
     name: 'ChunkRow',
     declaration: 'export type ChunkRow = {\n    type: \'text-chunks\';\n    seq0: SessionSeqType;\n    time0: number;\n    data: TextRunData;\n} | {\n    type: \'reasoning-chunks\';\n    seq0: SessionSeqType;\n    time0: number;\n    data: TextRunData;\n} | {\n    type: \'tool-call-chunks\';\n    seq0: SessionSeqType;\n    time0: number;\n    data: ToolCallRunData;\n};',
   },
@@ -4752,6 +4816,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ScopeKey',
     declaration: 'export type ScopeKey = object;',
+  },
+  {
+    name: 'ScreencastFrame',
+    declaration: 'export interface ScreencastFrame {\n    readonly browserSessionId: string;\n    readonly dshSessionId: string;\n    readonly mime: \'image/jpeg\';\n    readonly dataBase64: string;\n    readonly timestamp: number;\n}',
+  },
+  {
+    name: 'ScreencastFrameInput',
+    declaration: 'export interface ScreencastFrameInput {\n    readonly mime: \'image/jpeg\';\n    readonly dataBase64: string;\n    readonly timestamp: number;\n}',
+  },
+  {
+    name: 'ScreencastRequest',
+    declaration: 'export interface ScreencastRequest {\n    readonly sessionId: SessionId;\n    readonly browserSessionId: string;\n}',
   },
   {
     name: 'SearchFileMatches',

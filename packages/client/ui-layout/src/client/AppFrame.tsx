@@ -1,11 +1,11 @@
 /**
- * Three-column shell frame, registered into the built-in 'root' slot (the web
- * shell renders only 'root'). Owns the grid tracks (sidebar | center |
- * details), the drag handles (pointer capture + rAF throttle), the concession
- * chain (columns.ts), and the child-slot render decisions: the sidebar slot
- * renders HERE with live parameters from the concession solve, and the
- * session-aware occupants render in fixed column positions; strict entries
- * gate themselves on current-session availability while session-maybe
+ * Shell frame, registered into the built-in 'root' slot (the web shell
+ * renders only 'root'). Owns the grid tracks (sidebar | center | details |
+ * browser), the drag handles (pointer capture + rAF throttle), the
+ * concession chain (columns.ts), and the child-slot render decisions: the
+ * sidebar slot renders HERE with live parameters from the concession solve,
+ * and the session-aware occupants render in fixed column positions; strict
+ * entries gate themselves on current-session availability while session-maybe
  * entries retain identity. Pure component: everything arrives
  * through the three framework shares — zero cordis or framework imports,
  * zero self-made hooks.
@@ -15,7 +15,9 @@ import type { ReactNode } from 'react'
 import type {
   PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore,
 } from '@deepseek-ai/dsh-client-ui-slots'
-import { computeColumns, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_DEFAULT } from './columns.ts'
+import {
+  BROWSER_STRIP_WIDTH, computeColumns, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_DEFAULT,
+} from './columns.ts'
 import { DocumentTitle } from './DocumentTitle.tsx'
 import type { createLayoutStore } from './stores.ts'
 import css from './AppFrame.module.css'
@@ -23,7 +25,7 @@ import css from './AppFrame.module.css'
 /** Full composed props: runtime share + child-slot render share + store share. */
 export type AppFrameProps =
   & PropsRuntime<'root'>
-  & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'shell.overlay'>
+  & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'browser' | 'shell.overlay'>
   & PropsStore<ReturnType<typeof createLayoutStore>>
   & PropsLocale<'common'>
 
@@ -38,10 +40,27 @@ function DetailsColumn(props: { children?: ReactNode }) {
 }
 
 /**
+ * Browser viewport column; width 0 keeps the subtree mounted. Strip mode
+ * takes the column out of the grid so a thumbnail remains visible below the
+ * four-column breakpoint without rewriting details preference width.
+ */
+function BrowserColumn(props: { strip: boolean; children?: ReactNode }) {
+  return (
+    <div
+      className={css.browserCol}
+      data-mode={props.strip ? 'strip' : 'track'}
+      {...props.strip ? { style: { width: BROWSER_STRIP_WIDTH } } : {}}
+    >
+      {props.children}
+    </div>
+  )
+}
+
+/**
  * One drag handle: pointer capture, rAF-throttled dx reports against the drag-start origin.
  * `side` keys the hover-reveal CSS to the owning column.
  */
-function DragHandle(props: { side: 'sidebar' | 'details'; left: number; onStart: () => void; onDrag: (dx: number) => void; onEnd: () => void }) {
+function DragHandle(props: { side: 'sidebar' | 'details' | 'browser'; left: number; onStart: () => void; onDrag: (dx: number) => void; onEnd: () => void }) {
   const [dragging, setDragging] = useState(false)
   const origin = useRef(0)
   const latest = useRef(0)
@@ -87,7 +106,7 @@ function DragHandle(props: { side: 'sidebar' | 'details'; left: number; onStart:
   )
 }
 
-/** The three-column frame (see module doc). */
+/** The shell frame (see module doc). */
 export function AppFrame({
   useStore,
   useSessions,
@@ -113,6 +132,7 @@ export function AppFrame({
     if (detailsSession === undefined) return
     if (lastSession.current !== undefined && lastSession.current !== detailsSession) {
       actions.closeDetails()
+      actions.closeBrowser()
     }
     lastSession.current = detailsSession
   }, [actions, detailsSession])
@@ -149,36 +169,50 @@ export function AppFrame({
   const sidebarPreference = sidebarCollapsed
     ? 0
     : panels.sidebar === 0 ? SIDEBAR_DEFAULT : panels.sidebar
-  const cols = computeColumns(viewport, sidebarPreference, detailsSession === undefined ? 0 : panels.details)
+  const detailsPref = detailsSession === undefined ? 0 : panels.details
+  const browserPref = detailsSession === undefined ? 0 : panels.browser
+  const cols = computeColumns(viewport, sidebarPreference, detailsPref, browserPref)
   const colsRef = useRef(cols)
   colsRef.current = cols
+  const browserStrip = browserPref > 0 && cols.browser === 0 && detailsSession !== undefined
 
   // The drag base is the rendered width captured at drag start (grabbing a
   // concession-clamped panel must not jump back to the stored preference);
   // it stays frozen for the whole gesture so dx deltas do not compound.
   const sidebarBase = useRef(0)
   const detailsBase = useRef(0)
+  const browserBase = useRef(0)
   // Track-level transitions pause for the whole gesture: eased tracks would
   // detach the column edge from the pointer (AppFrame.module.css).
   const [dragging, setDragging] = useState(false)
   const onDragEnd = useCallback(() => { setDragging(false) }, [])
   const onSidebarStart = useCallback(() => { sidebarBase.current = colsRef.current.sidebar; setDragging(true) }, [])
   const onDetailsStart = useCallback(() => { detailsBase.current = colsRef.current.details; setDragging(true) }, [])
+  const onBrowserStart = useCallback(() => { browserBase.current = colsRef.current.browser; setDragging(true) }, [])
   const onSidebarDrag = useCallback((dx: number) => {
     actions.setSidebar(sidebarBase.current + dx)
   }, [actions])
   const onDetailsDrag = useCallback((dx: number) => {
     actions.setDetails(detailsBase.current - dx)
   }, [actions])
+  const onBrowserDrag = useCallback((dx: number) => {
+    actions.setBrowser(browserBase.current - dx)
+  }, [actions])
   const productTitle = process.env.DSH_CLIENT_TITLE ?? t('brand.localBuild')
+  const detailsHandleLeft = viewport - cols.browser - cols.details
+  const browserHandleLeft = viewport - cols.browser
 
   return (
     <div
       ref={frameRef}
       className={css.frame}
-      style={{ gridTemplateColumns: `${cols.sidebar}px minmax(0, 1fr) ${cols.details}px` }}
+      style={{
+        gridTemplateColumns: `${cols.sidebar}px minmax(0, 1fr) ${cols.details}px ${cols.browser}px`,
+      }}
       data-sidebar-collapsed={sidebarCollapsed || undefined}
       data-details-collapsed={cols.details === 0 || undefined}
+      data-browser-collapsed={cols.browser === 0 || undefined}
+      data-browser-strip={browserStrip || undefined}
       data-dragging={dragging || undefined}
     >
       <DocumentTitle
@@ -197,22 +231,26 @@ export function AppFrame({
         })}
       </div>
       <>
-        {/* Both column occupants stay at fixed tree positions from first
+        {/* Column occupants stay at fixed tree positions from first
             paint — no loading gate: a bare status line reads worse than
             the shell's own pending rendering. The conversation
             is session-maybe; SessionProvider withholds the strict details
-            entry while no session is current. */}
+            and browser entries while no session is current. */}
         <CenterColumn>{renderSlot('conversation', {})}</CenterColumn>
         <DetailsColumn>
           <SessionProvider>{renderSlot('details', {})}</SessionProvider>
         </DetailsColumn>
+        <BrowserColumn strip={browserStrip}>
+          <SessionProvider>{renderSlot('browser', {})}</SessionProvider>
+        </BrowserColumn>
       </>
       <div className={css.overlayLayer} data-shell-overlay>
         {renderSlot('shell.overlay', {})}
       </div>
       {/* The collapsed rail is fixed-width: no resize handle while closed. */}
       {!sidebarCollapsed && <DragHandle side="sidebar" left={cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
-      {cols.details > 0 && <DragHandle side="details" left={viewport - cols.details} onStart={onDetailsStart} onDrag={onDetailsDrag} onEnd={onDragEnd} />}
+      {cols.details > 0 && <DragHandle side="details" left={detailsHandleLeft} onStart={onDetailsStart} onDrag={onDetailsDrag} onEnd={onDragEnd} />}
+      {cols.browser > 0 && <DragHandle side="browser" left={browserHandleLeft} onStart={onBrowserStart} onDrag={onBrowserDrag} onEnd={onDragEnd} />}
     </div>
   )
 }

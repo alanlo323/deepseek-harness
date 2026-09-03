@@ -92,6 +92,7 @@
     { "path": "./packages/client/ui-user-questions" },
     { "path": "./packages/client/ui-trajectory" },
     { "path": "./packages/client/ui-document" },
+    { "path": "./packages/client/ui-browser" },
     { "path": "./packages/session-query/session-log-export/tsconfig.client.json" },
     { "path": "./packages/client/ui-theme" },
     { "path": "./packages/client/ui-settings" },

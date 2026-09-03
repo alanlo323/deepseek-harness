@@ -36,6 +36,9 @@ const FILE_REFERENCE_PROMPT = fileURLToPath(new URL(
 const EXPECTED_TOOLS = [
   'ask_user_question',
   'bash',
+  'browser_close',
+  'browser_open',
+  'browser_run',
   'create_goal',
   'edit',
   'exit_plan_mode',
@@ -141,12 +144,13 @@ it('assembles the shipped Web transport, catalog, guidance, and defaults', async
       "mode": "always",
     }
   `)
-  // The catalog belongs to an AGENT, not to the process: every model-facing row
-  // now lives in a preset mounted under one session's scope, so the global
-  // layer holds nothing and a caller must name the agent to see anything. This
-  // composes from the deployment default — what a session that names no preset
-  // gets — which is the shape this test has always been about.
-  expect(ctx.tools.schemas().map(schema => schema.name)).toEqual([])
+  // Preset rows stay off the global layer. The three Browser Session tools are
+  // the Web host-plane exception: one process-wide Chromium session, so they
+  // register globally rather than inside shipped presets (which headless and
+  // the Python runtime also mount).
+  expect(ctx.tools.schemas().map(schema => schema.name)).toEqual([
+    'browser_close', 'browser_open', 'browser_run',
+  ])
   const handle = await ctx.agents.create({
     sessionId: SessionId('shipped-composition'),
     setup: agentCtx => ctx.agentPresets.mount(agentCtx).then(() => undefined),
@@ -203,6 +207,7 @@ it('ships PTC with run_code but without the general workflow SDK binding', async
     expect(assembly.tools.map(tool => tool.name)).toEqual([RUN_CODE_NAME])
     const sdk = assembly.sections.find(section => section.name === 'tools:sdk')?.text ?? ''
     expect(sdk).toContain('  ralph: {')
+    expect(sdk).toContain('  browser_open: Record<string, JsonValue>;')
     expect(sdk).not.toContain('  workflow: {')
   } finally {
     await handle.dispose()

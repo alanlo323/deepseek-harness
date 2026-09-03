@@ -172,6 +172,21 @@
     - id: document-host
       name: '@deepseek-ai/dsh-document-host'
 
+    # Headless Chromium Browser Session: seam, Playwright provider, tools, Host Remote.
+    - id: browser
+      name: '@deepseek-ai/dsh-browser'
+    - id: browser-playwright
+      name: '@deepseek-ai/dsh-browser-playwright'
+      config:
+        screencastFps: 10
+        screencastQuality: 50
+        maxWallMs: 30000
+        maxResultBytes: 65536
+    - id: tool-browser
+      name: '@deepseek-ai/dsh-tool-browser'
+    - id: browser-host
+      name: '@deepseek-ai/dsh-browser-host'
+
     - id: api-remotes
       name: '@deepseek-ai/dsh-api-remotes'
 
@@ -311,6 +326,9 @@
 
     - id: ui-document
       name: '@deepseek-ai/dsh-client-ui-document'
+
+    - id: ui-browser
+      name: '@deepseek-ai/dsh-client-ui-browser'
 
 # ── the agent plane moves behind agent presets ─────────────────────────────
 #

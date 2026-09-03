@@ -140,6 +140,7 @@ seam 正是替换一个提供方就能改变整个产品的原因。文件系统
 | 添加模型可见上下文 | 调用 `agent.inject()`；它会落到下一次获准的请求中 |
 | 添加 UI 或编辑器集成 | 驱动 `ctx.agents` 并从 `session/event` 渲染 |
 | 添加 Web Client Chat 节点 | 注册 `ConversationNodeDefinition` + keyed renderer |
+| 添加无头 Chromium Browser Session | 注册 `ctx.browser` 提供方和 `dsh-tool-browser`；Web 预览由 `dsh-browser-host` 与 `ui-browser` 提供 |
 | 添加持久会话状态 | 扩展 `SessionEventMap`；从日志渲染和回放 |
 | 生成会话标题 | 注册唯一的 `ctx.sessionTitle` 提供方 |
 | 管理同会话目标 | 使用 `ctx.goals`；通过 `agent/*` 续跑 |

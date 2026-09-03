@@ -51,6 +51,7 @@ kind: "package-group"
 | [`ui-goal/`](ui-goal/README.zh.md) | 展示与管理当前目标 | — |
 | [`ui-trajectory/`](ui-trajectory/README.zh.md) | 提供 agent（智能体）活动的其他视图 | — |
 | [`ui-document/`](ui-document/README.zh.md) | 在对话的报告视图中展示已提交的 Markdown 报告 | — |
+| [`ui-browser/`](ui-browser/README.zh.md) | 呈现仅供观看的 Browser Session 视口栏 | — |
 | [`ui-commands/`](ui-commands/README.zh.md) | 提供会话感知的命令发现与分发 | — |
 | [`ui-input-trigger/`](ui-input-trigger/README.zh.md) | 协调内联命令与引用建议 | — |
 | [`ui-skill/`](ui-skill/README.zh.md) | 向内联建议添加 skill（技能）引用 | — |

@@ -2057,6 +2057,41 @@
       "source": "packages/document/document-host/src/types.ts"
     },
     {
+      "doc": "docs/subsystems/browser.md",
+      "symbol": "BrowserSessionId",
+      "source": "packages/browser/browser/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/browser.md",
+      "symbol": "BrowserSessionStatus",
+      "source": "packages/browser/browser/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/browser.md",
+      "symbol": "BrowserSessionMeta",
+      "source": "packages/browser/browser/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/browser.md",
+      "symbol": "BrowserSessionView",
+      "source": "packages/browser/browser-host/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/browser.md",
+      "symbol": "ScreencastFrame",
+      "source": "packages/browser/browser/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/browser.md",
+      "symbol": "ScreencastRequest",
+      "source": "packages/browser/browser-host/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/browser.md",
+      "symbol": "BrowserProvider",
+      "source": "packages/browser/browser/src/types.ts"
+    },
+    {
       "doc": "packages/client/ui-conversation/README.md",
       "symbol": "ComposerChainProps",
       "source": "packages/client/ui-conversation/src/client/contract/slots.ts"

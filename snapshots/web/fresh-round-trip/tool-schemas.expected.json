@@ -109,6 +109,38 @@
       }
     },
     {
+      "name": "browser_close",
+      "description": "Close the open headless Chromium Browser Session.",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "browser_open",
+      "description": "Open the single headless Chromium Browser Session for this process.",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "browser_run",
+      "description": "Run a Playwright script body against the open Browser Session page.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "script": {
+            "type": "string",
+            "description": "Playwright script body. `page`, `browser`, `context`, and `playwright` are in scope. Return JSON."
+          }
+        },
+        "required": [
+          "script"
+        ]
+      }
+    },
+    {
       "name": "create_goal",
       "description": "Create one persisted same-session completion goal when the current direct human request is a long-running objective that should continue across autonomous goal rounds. You may infer that intent without requiring the user to say \"create a goal\". Do not use this for trivial single-turn work. Execution rejects non-human and subagent authority.",
       "parameters": {

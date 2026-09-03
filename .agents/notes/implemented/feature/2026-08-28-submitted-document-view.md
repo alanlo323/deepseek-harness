@@ -28,7 +28,7 @@ Every submit, live Markdown, and image read uses one contained resolver: `sessio
 
 ## Alternatives considered
 
-**A fourth `ui-layout` column.** Rejected: it would add a root child beside Chat and Details and fight the existing conversation view bar.
+**A fourth `ui-layout` column.** Rejected for this Report tab: it would add a root child beside Chat and Details and fight the existing conversation view bar. The Browser Session viewport occupies a `browser` column for watch-only Chromium preview and does not reopen this decision ([browser viewport](2026-09-03-browser-viewport-sidebar.md)).
 
 **Markdown only inside the tool card.** Rejected: the user needs a reopenable tab after hydrate, not a card that disappears into the transcript.
 

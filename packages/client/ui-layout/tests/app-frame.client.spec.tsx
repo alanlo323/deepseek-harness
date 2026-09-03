@@ -63,6 +63,7 @@ function mountFrame() {
     if (key === 'sidebar') return <div data-testid="sidebar-content" />
     if (key === 'conversation') return <div data-testid="center-content" />
     if (key === 'details') return <div data-testid="details-content" />
+    if (key === 'browser') return <div data-testid="browser-content" />
     if (key === 'conversation.empty') return <div data-testid="empty-content" />
     return <div data-testid="other-content" />
   }) as AppFrameProps['renderSlot']
@@ -109,9 +110,13 @@ function mountFrame() {
 }
 
 function tracks(frame: HTMLElement): number[] {
-  const m = /^(\d+)px minmax\(0, 1fr\) (\d+)px$/.exec(frame.style.gridTemplateColumns)
-  if (m === null) throw new Error(`unexpected template: ${frame.style.gridTemplateColumns}`)
-  return [Number(m[1]), Number(m[2])]
+  const four = /^(\d+)px minmax\(0, 1fr\) (\d+)px (\d+)px$/.exec(frame.style.gridTemplateColumns)
+  if (four === null) throw new Error(`unexpected template: ${frame.style.gridTemplateColumns}`)
+  const sidebar = Number(four[1])
+  const details = Number(four[2])
+  const browser = Number(four[3])
+  if (browser === 0) return [sidebar, details]
+  return [sidebar, details, browser]
 }
 
 function drag(handle: Element, fromX: number, toX: number): void {
@@ -319,6 +324,55 @@ describe('AppFrame', () => {
     expect(frame.querySelectorAll('[class*="handle"]')).toHaveLength(1)
     act(() => { instance.actions.toggleSidebar() })
     expect(frame.querySelectorAll('[class*="handle"]')).toHaveLength(0)
+  })
+})
+
+describe('AppFrame — browser column', () => {
+  it('keeps the browser column mounted at zero width', () => {
+    const { frame, getByTestId } = mountFrame()
+    expect(tracks(frame)).toEqual([280, 0])
+    expect(getByTestId('browser-content')).toBeTruthy()
+    expect(frame.hasAttribute('data-browser-collapsed')).toBe(true)
+  })
+
+  it('opens a fourth track at a wide viewport', () => {
+    const { frame, instance } = mountFrame()
+    act(() => { instance.actions.openBrowser() })
+    expect(tracks(frame)).toEqual([280, 0, 240])
+    expect(frame.hasAttribute('data-browser-collapsed')).toBe(false)
+    expect(frame.hasAttribute('data-browser-strip')).toBe(false)
+  })
+
+  it('keeps details preference and shows a strip below the four-column gate', () => {
+    frameWidth = 1280
+    const { frame, instance } = mountFrame()
+    act(() => {
+      instance.actions.openDetails()
+      instance.actions.openBrowser()
+    })
+    expect(tracks(frame)).toEqual([280, 360])
+    expect(instance.getSnapshot().details).toBe(360)
+    expect(frame.hasAttribute('data-browser-strip')).toBe(true)
+    expect(frame.querySelector('[data-mode="strip"]')).toBeTruthy()
+  })
+
+  it('closes the browser panel when the Session id changes', () => {
+    const { frame, instance, rerenderFrame } = mountFrame()
+    act(() => { instance.actions.openBrowser() })
+    expect(tracks(frame)).toEqual([280, 0, 240])
+    selectedSession.current = 's-next' as SessionId
+    act(() => { rerenderFrame() })
+    expect(tracks(frame)).toEqual([280, 0])
+    expect(instance.getSnapshot().browser).toBe(0)
+  })
+
+  it('browser drag widens leftward', () => {
+    const { frame, instance } = mountFrame()
+    act(() => { instance.actions.openBrowser() })
+    const handles = frame.querySelectorAll('[class*="handle"]')
+    expect(handles).toHaveLength(2)
+    drag(handles[1]!, 1680, 1620)
+    expect(tracks(frame)[2]).toBe(300)
   })
 })
 
