@@ -404,7 +404,7 @@ describe('provider-routed retry policy', () => {
       textResponse('done'),
     ])
     ;({ ctx: context } = await harness(accepted, { mock: { mode: 'normal' } }))
-    const acceptedAgent = context.agentLoop.create(SessionId('retry-after-default-cap'), {
+    const acceptedAgent = await context.agentLoop.create(SessionId('retry-after-default-cap'), {
       provider: 'mock',
       model: 'mock',
     })
@@ -421,7 +421,7 @@ describe('provider-routed retry policy', () => {
       new LlmError('wait too long', 'RATE_LIMIT', { providerRetryAfterMs: 10_001 }),
     ])
     ;({ ctx: context } = await harness(rejected, { mock: { mode: 'normal' } }))
-    const rejectedAgent = context.agentLoop.create(SessionId('retry-after-default-over-cap'), {
+    const rejectedAgent = await context.agentLoop.create(SessionId('retry-after-default-over-cap'), {
       provider: 'mock',
       model: 'mock',
     })
