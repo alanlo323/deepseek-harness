@@ -573,7 +573,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: 'async close(): Promise<BrowserSessionId>',
-        description: 'Close the open Browser Session.',
+        description: 'Close the open Browser Session. Occupancy stays until provider teardown finishes; a failed teardown still clears occupancy so `open` may retry.',
         parameters: [],
         returns: 'the closed Browser Session id.',
       },
@@ -3643,7 +3643,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'BrowserProvider',
-    declaration: 'export interface BrowserProvider {\n    readonly id: string;\n    open(signal: AbortSignal): Promise<void>;\n    run(script: string, signal: AbortSignal): Promise<JsonValue>;\n    close(): Promise<void>;\n    subscribeFrames(onFrame: (frame: ScreencastFrameInput) => void): () => void;\n}',
+    declaration: 'export interface BrowserProvider {\n    readonly id: string;\n    open(signal: AbortSignal): Promise<void>;\n    run(script: string, signal: AbortSignal): Promise<JsonValue>;\n    close(): Promise<void>;\n    subscribeFrames(onFrame: (frame: ScreencastFrameInput) => void): () => void;\n    subscribeDropped(onDropped: () => void): () => void;\n}',
   },
   {
     name: 'BrowserSessionId',

@@ -1,6 +1,7 @@
 /**
  * Child-process main loop: stdin JSON lines in, stdout JSON lines out.
  * Executable logic stays here for in-process coverage; `worker.ts` is glue.
+ * Abort lines are applied immediately; open/run/close stay serialized.
  * @module @deepseek-ai/dsh-browser-playwright/child-main
  */
 
@@ -34,21 +35,37 @@ export async function runChildMain(
       dataBase64: frame.dataBase64,
       timestamp: frame.timestamp,
     })
+  }, () => {
+    write(stdio, { type: 'dropped' })
   })
   let buffer = ''
-  for await (const chunk of stdio.stdin) {
-    buffer += typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8')
-    while (true) {
-      const nl = buffer.indexOf('\n')
-      if (nl === -1) break
-      const line = buffer.slice(0, nl)
-      buffer = buffer.slice(nl + 1)
-      const parsed = parseProtocolLine(line.trim())
-      if (parsed === undefined) continue
-      await handleHostMessage(engine, stdio, parsed)
+  let commands = Promise.resolve()
+  let opAbort = new AbortController()
+  try {
+    for await (const chunk of stdio.stdin) {
+      buffer += typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8')
+      while (true) {
+        const nl = buffer.indexOf('\n')
+        if (nl === -1) break
+        const line = buffer.slice(0, nl)
+        buffer = buffer.slice(nl + 1)
+        const parsed = parseProtocolLine(line.trim())
+        if (parsed === undefined) continue
+        const message = parsed as HostToChild
+        if (message.type === 'abort') {
+          engine.abort()
+          opAbort.abort()
+          opAbort = new AbortController()
+          continue
+        }
+        const signal = opAbort.signal
+        commands = commands.then(() => handleHostMessage(engine, stdio, parsed, signal))
+      }
     }
+    await commands
+  } finally {
+    await engine.close()
   }
-  await engine.close()
 }
 
 /**
@@ -56,11 +73,13 @@ export async function runChildMain(
  * @param engine - session engine.
  * @param stdio - stdout writer.
  * @param parsed - decoded JSON value.
+ * @param signal - cancellation for this open/run; abort lines abort this signal.
  */
 export async function handleHostMessage(
   engine: SessionEngine,
   stdio: ChildStdio,
   parsed: unknown,
+  signal: AbortSignal = new AbortController().signal,
 ): Promise<void> {
   const message = parsed as HostToChild
   if (message.type === 'abort') {
@@ -72,12 +91,12 @@ export async function handleHostMessage(
   }
   try {
     if (message.type === 'open') {
-      await engine.open(new AbortController().signal)
+      await engine.open(signal)
       write(stdio, { type: 'ok', id: message.id })
       return
     }
     if (message.type === 'run') {
-      const result = await engine.run(message.script, new AbortController().signal)
+      const result = await engine.run(message.script, signal)
       write(stdio, { type: 'ok', id: message.id, result })
       return
     }

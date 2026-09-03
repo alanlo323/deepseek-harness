@@ -17,6 +17,7 @@ const fakeProvider: BrowserProvider = {
   run: async () => null,
   close: async () => {},
   subscribeFrames: () => () => {},
+  subscribeDropped: () => () => {},
 }
 
 describe('dsh-tool-browser real-load-path guard', () => {

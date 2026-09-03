@@ -49,6 +49,8 @@ export class BrowserRuntime extends Service {
 
   private readonly providers = new Map<string, BrowserProvider>()
   private session: LiveSession | undefined
+  private closing: Promise<BrowserSessionId> | undefined
+  private droppedDispose: (() => void) | undefined
 
   /**
    * @param ctx - owning context.
@@ -78,13 +80,36 @@ export class BrowserRuntime extends Service {
    * @returns the new Browser Session id.
    */
   async open(signal: AbortSignal): Promise<BrowserSessionId> {
+    if (this.closing !== undefined) await this.closing
     if (this.session !== undefined) {
       throw new BrowserError('a Browser Session is already open', 'BROWSER_SESSION_OPEN')
     }
     const provider = this.resolveProvider()
     await provider.open(signal)
+    if (signal.aborted) {
+      await provider.close().catch(() => {
+        // Launch was cancelled; occupancy must not publish.
+      })
+      throw new BrowserError('browser_run was cancelled', 'BROWSER_RUN_ABORTED')
+    }
     const id = brandBrowserSessionId(randomUUID())
     this.session = { id, provider }
+    let mine = true
+    let dispose: () => void = () => {}
+    dispose = provider.subscribeDropped(() => {
+      if (!mine) return
+      if (this.closing !== undefined) return
+      if (this.session?.id === id) this.session = undefined
+      mine = false
+      dispose()
+    })
+    this.droppedDispose = dispose
+    if (this.session?.id !== id) {
+      mine = false
+      dispose()
+      this.droppedDispose = undefined
+      throw new BrowserError('browser engine child exited', 'BROWSER_ENGINE_EXIT')
+    }
     return id
   }
 
@@ -100,14 +125,29 @@ export class BrowserRuntime extends Service {
   }
 
   /**
-   * Close the open Browser Session.
+   * Close the open Browser Session. Occupancy stays until provider teardown
+   * finishes; a failed teardown still clears occupancy so `open` may retry.
    * @returns the closed Browser Session id.
    */
   async close(): Promise<BrowserSessionId> {
+    if (this.closing !== undefined) return this.closing
     const session = this.requireOpen()
-    this.session = undefined
-    await session.provider.close()
-    return session.id
+    const pending = (async (): Promise<BrowserSessionId> => {
+      try {
+        await session.provider.close()
+        return session.id
+      } finally {
+        this.droppedDispose?.()
+        this.droppedDispose = undefined
+        this.session = undefined
+      }
+    })()
+    this.closing = pending
+    try {
+      return await pending
+    } finally {
+      this.closing = undefined
+    }
   }
 
   /**
@@ -185,6 +225,7 @@ export class BrowserRuntime extends Service {
       throw new BrowserError('multiple browser providers are registered', 'BROWSER_PROVIDER_AMBIGUOUS')
     }
     for (const provider of this.providers.values()) return provider
+    /* v8 ignore next -- size===1 already proved the map is non-empty */
     throw new BrowserError('no browser provider is registered', 'BROWSER_PROVIDER_UNAVAILABLE')
   }
 }

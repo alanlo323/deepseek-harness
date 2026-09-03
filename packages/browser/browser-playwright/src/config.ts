@@ -5,7 +5,7 @@
 
 import z from '@deepseek-ai/schemastery'
 
-/** Plugin config: screencast cadence, result cap, and optional Chromium path. */
+/** Plugin config: screencast cadence, result cap, close timeout, and optional Chromium path. */
 export interface Config {
   /** Target screencast frames per second. */
   screencastFps?: number
@@ -15,6 +15,8 @@ export interface Config {
   maxWallMs?: number
   /** Inclusive UTF-8 byte cap of a JSON `browser_run` result; overflow fails. */
   maxResultBytes?: number
+  /** Wall-clock ceiling in milliseconds for the engine-child close RPC before kill. */
+  closeTimeoutMs?: number
   /** Optional Chromium executable. Omitted uses Playwright's resolved binary. */
   executablePath?: string
 }
@@ -24,6 +26,7 @@ export const Config: z<Config> = z.object({
   screencastQuality: z.number().default(50),
   maxWallMs: z.number().default(30_000),
   maxResultBytes: z.number().default(65_536),
+  closeTimeoutMs: z.number().default(5_000),
   executablePath: z.string().required(false),
 })
 
@@ -33,6 +36,7 @@ export type ResolvedPlaywrightConfig = {
   readonly screencastQuality: number
   readonly maxWallMs: number
   readonly maxResultBytes: number
+  readonly closeTimeoutMs: number
   readonly executablePath?: string
 }
 
@@ -43,15 +47,18 @@ export type ResolvedPlaywrightConfig = {
  */
 export function resolvePlaywrightConfig(config: Config): ResolvedPlaywrightConfig {
   const resolved = config as Required<Pick<Config, 'screencastFps' | 'screencastQuality' | 'maxWallMs' | 'maxResultBytes'>> & Config
+  const closeTimeoutMs = resolved.closeTimeoutMs ?? 5_000
   assertIntegerInRange('screencastFps', resolved.screencastFps, 1, 30)
   assertIntegerInRange('screencastQuality', resolved.screencastQuality, 0, 100)
   assertIntegerInRange('maxWallMs', resolved.maxWallMs, 1, 2_147_483_647)
   assertIntegerInRange('maxResultBytes', resolved.maxResultBytes, 1, 16_777_216)
+  assertIntegerInRange('closeTimeoutMs', closeTimeoutMs, 1, 2_147_483_647)
   return {
     screencastFps: resolved.screencastFps,
     screencastQuality: resolved.screencastQuality,
     maxWallMs: resolved.maxWallMs,
     maxResultBytes: resolved.maxResultBytes,
+    closeTimeoutMs,
     ...resolved.executablePath !== undefined && resolved.executablePath.length > 0
       ? { executablePath: resolved.executablePath }
       : {},

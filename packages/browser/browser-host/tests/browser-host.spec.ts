@@ -13,6 +13,7 @@ function fakeProvider(): BrowserProvider {
     run: vi.fn(async () => ({ ok: true })),
     close: vi.fn(async () => {}),
     subscribeFrames: vi.fn((_onFrame: (frame: ScreencastFrameInput) => void) => () => {}),
+    subscribeDropped: vi.fn(() => () => {}),
   }
 }
 

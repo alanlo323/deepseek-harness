@@ -324,7 +324,7 @@ export type Config = LocalConfig
 需要：`browser`
 
 ```ts config-catalog
-/** Plugin config: screencast cadence, result cap, and optional Chromium path. */
+/** Plugin config: screencast cadence, result cap, close timeout, and optional Chromium path. */
 export interface Config {
   /** Target screencast frames per second. */
   screencastFps?: number
@@ -334,6 +334,8 @@ export interface Config {
   maxWallMs?: number
   /** Inclusive UTF-8 byte cap of a JSON `browser_run` result; overflow fails. */
   maxResultBytes?: number
+  /** Wall-clock ceiling in milliseconds for the engine-child close RPC before kill. */
+  closeTimeoutMs?: number
   /** Optional Chromium executable. Omitted uses Playwright's resolved binary. */
   executablePath?: string
 }

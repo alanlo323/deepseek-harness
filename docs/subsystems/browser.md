@@ -99,7 +99,11 @@ interface BrowserProvider {
    * @returns JSON-serializable script result.
    */
   run(script: string, signal: AbortSignal): Promise<JsonValue>
-  /** Tear down the engine. */
+  /**
+   * Tear down the engine. Must return after the child is killed even when the
+   * close RPC fails, so a later `open` may retry.
+   * @returns nothing; the provider occupancy is cleared.
+   */
   close(): Promise<void>
   /**
    * Subscribe to screencast JPEG frames. The runtime keeps a ring of one
@@ -108,6 +112,13 @@ interface BrowserProvider {
    * @returns disposer.
    */
   subscribeFrames(onFrame: (frame: ScreencastFrameInput) => void): () => void
+  /**
+   * Subscribe to engine teardown that was not completed through a still-open
+   * `close()` waiter. Unexpected child exit must notify so occupancy can clear.
+   * @param onDropped - occupancy is gone.
+   * @returns disposer.
+   */
+  subscribeDropped(onDropped: () => void): () => void
 }
 ```
 
@@ -149,7 +160,8 @@ async open(signal: AbortSignal): Promise<BrowserSessionId>
 async run(script: string, signal: AbortSignal): Promise<JsonValue>
 
 /**
- * Close the open Browser Session.
+ * Close the open Browser Session. Occupancy stays until provider teardown
+ * finishes; a failed teardown still clears occupancy so `open` may retry.
  * @returns the closed Browser Session id.
  */
 async close(): Promise<BrowserSessionId>

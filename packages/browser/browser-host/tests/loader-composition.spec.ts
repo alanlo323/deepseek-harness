@@ -31,6 +31,7 @@ const FakeBrowserProvider = {
       run: vi.fn(async () => ({ ok: true })),
       close: vi.fn(async () => {}),
       subscribeFrames: vi.fn(() => () => {}),
+      subscribeDropped: vi.fn(() => () => {}),
     }
     ctx.browser.registerProvider(provider)
   },

@@ -23,15 +23,21 @@ export type ChildToHost =
     readonly dataBase64: string
     readonly timestamp: number
   }
+  | { readonly type: 'dropped' }
 
 /**
  * Parse one protocol line.
  * @param line - one JSON object.
- * @returns the message, or `undefined` when the line is empty.
+ * @returns the message, or `undefined` when the line is empty or not JSON.
  */
 export function parseProtocolLine(line: string): unknown {
   if (line.length === 0) return undefined
-  return JSON.parse(line) as unknown
+  try {
+    return JSON.parse(line) as unknown
+  } catch {
+    // Non-JSON stdout (Playwright banners, torn writes) must not crash the Host.
+    return undefined
+  }
 }
 
 /**

@@ -46,6 +46,11 @@ export function BrowserPanel({
 
   useEffect(() => view.subscribe(() => { tick(n => n + 1) }), [view])
 
+  useEffect(() => () => {
+    view.setEnlarged(false)
+    view.setFrame(undefined)
+  }, [view])
+
   useEffect(() => {
     if (view.frame !== undefined && view.frame.dshSessionId !== sessionId) {
       view.setFrame(undefined)
@@ -65,14 +70,18 @@ export function BrowserPanel({
     if (!bound || browserSessionId === undefined) return
     const ac = new AbortController()
     void (async () => {
-      for await (const next of subscribeScreencast(browserSessionId, ac.signal)) {
-        if (next.dshSessionId !== sessionId) continue
-        view.setFrame(next)
-        setFrame(next)
+      try {
+        for await (const next of subscribeScreencast(browserSessionId, ac.signal)) {
+          if (next.dshSessionId !== sessionId) continue
+          view.setFrame(next)
+          setFrame(next)
+        }
+      } catch {
+        // Host closed the session or the Remote dropped; keep the last frame.
       }
     })()
     return () => { ac.abort() }
-  }, [bound, browserSessionId, sessionId, subscribeScreencast])
+  }, [bound, browserSessionId, sessionId, subscribeScreencast, view])
 
   const src = frame === undefined ? undefined : `data:${frame.mime};base64,${frame.dataBase64}`
 

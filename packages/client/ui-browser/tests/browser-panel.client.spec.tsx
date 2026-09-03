@@ -164,6 +164,58 @@ describe('BrowserPanel', () => {
     expect(view.frame).toBeUndefined()
     expect(view.enlarged).toBe(false)
   })
+
+  it('clears enlarge overlay when the panel unmounts', () => {
+    const view = createBrowserView()
+    view.setFrame({
+      browserSessionId: 'b1',
+      dshSessionId: 's1',
+      mime: 'image/jpeg',
+      dataBase64: 'YQ==',
+      timestamp: 1,
+    })
+    view.setEnlarged(true)
+    const snapshot: BrowserSessionView = {
+      browserSessionId: 'b1',
+      dshSessionId: 's1',
+      status: 'open',
+    }
+    const screen = render(createElement(Panel, {
+      sessionId: SessionId('s1'),
+      useProjection: () => snapshot,
+      openBrowser: vi.fn(),
+      closeBrowser: vi.fn(),
+      subscribeScreencast: () => (async function* () {})(),
+      view,
+      t,
+    }))
+    expect(view.enlarged).toBe(true)
+    screen.unmount()
+    expect(view.enlarged).toBe(false)
+    expect(view.frame).toBeUndefined()
+  })
+
+  it('keeps the empty state when subscribeScreencast throws', async () => {
+    const snapshot: BrowserSessionView = {
+      browserSessionId: 'b1',
+      dshSessionId: 's1',
+      status: 'open',
+    }
+    render(createElement(Panel, {
+      sessionId: SessionId('s1'),
+      useProjection: () => snapshot,
+      openBrowser: vi.fn(),
+      closeBrowser: vi.fn(),
+      subscribeScreencast: () => {
+        throw new Error('browser/not-open')
+      },
+      view: createBrowserView(),
+      t,
+    }))
+    await act(async () => { await Promise.resolve() })
+    expect(document.body.textContent).toContain(zhHant.empty)
+    expect(document.querySelector('img')).toBeNull()
+  })
 })
 
 describe('BrowserOverlay', () => {
